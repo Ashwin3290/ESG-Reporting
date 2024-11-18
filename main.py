@@ -1,7 +1,7 @@
 import streamlit as st
-from pages.home import HomePage
-from pages.sector_kpis import KPIsPage
-from pages.dashboard import DashboardPage
+from page.home import HomePage
+from page.sector_kpis import KPIsPage
+from page.dashboard import DashboardPage
 
 def main():
     # Initialize session state

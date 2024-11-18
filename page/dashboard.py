@@ -2,29 +2,61 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
 from utils.data_manager import DataManager
-from config.constants import CUSTOM_CSS, SECTORS
+from config.constants import CUSTOM_CSS
 import pandas as pd
 
 class DashboardPage:
     def __init__(self):
         self.data_manager = DataManager()
+        self.categories = ['Environmental', 'Social', 'Governance']
 
     def render(self):
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         
-        if "selected_sector" not in st.session_state or "kpi_data" not in st.session_state:
+        if "selected_industry" not in st.session_state or "kpi_data" not in st.session_state:
             st.error("No data available for dashboard")
             return
 
-        sector = st.session_state.selected_sector
+        sector = st.session_state.selected_industry
         kpi_data = st.session_state.kpi_data
+        
+        # Organize KPIs by category
+        categorized_kpis = self.data_manager.get_industry_kpis_by_category(sector)
+        categorized_data = self._organize_kpi_data(kpi_data, categorized_kpis)
 
         # Header with navigation
+        self._render_header(sector)
+
+        # Overview Cards
+        self._render_overview_cards(categorized_data)
+
+        # Create tabs for ESG categories
+        tabs = st.tabs(self.categories)
+        
+        # Render content for each category tab
+        for tab, category in zip(tabs, self.categories):
+            with tab:
+                if category in categorized_data:
+                    self._render_category_tab(category, categorized_data[category])
+                else:
+                    st.info(f"No {category} KPIs available")
+
+    def _organize_kpi_data(self, kpi_data, categorized_kpis):
+        """Organize KPI data by ESG category"""
+        categorized_data = {}
+        for category in self.categories:
+            category_kpis = categorized_kpis.get(category, [])
+            category_data = {kpi: kpi_data[kpi] for kpi in category_kpis if kpi in kpi_data}
+            if category_data:
+                categorized_data[category] = category_data
+        return categorized_data
+
+    def _render_header(self, sector):
         col1, col2, col3 = st.columns([0.1, 0.8, 0.1])
         with col1:
             if st.button("← Back"):
                 st.session_state.current_page = "sector_kpis"
-                st.experimental_rerun()
+                st.rerun()
         
         with col2:
             st.markdown(
@@ -36,62 +68,65 @@ class DashboardPage:
                 unsafe_allow_html=True
             )
 
-        # Overview Cards
-        self._render_overview_cards(kpi_data)
-
-        # Detailed KPI Analysis
-        col1, col2 = st.columns([0.6, 0.4])
+    def _render_overview_cards(self, categorized_data):
+        # Calculate category scores
+        scores = {
+            category: sum(data.values()) / len(data) if data else 0
+            for category, data in categorized_data.items()
+        }
         
-        with col1:
-            self._render_kpi_comparison_chart(kpi_data)
-        
-        with col2:
-            self._render_category_performance(kpi_data)
-
-        # KPI Details Table
-        self._render_kpi_table(kpi_data)
-
-    def _render_overview_cards(self, kpi_data):
-        # Calculate overall scores
-        env_score = sum(kpi_data.values()) / len(kpi_data)  # Simplified for Phase 1
+        overall_score = sum(scores.values()) / len([s for s in scores.values() if s > 0])
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
             self._metric_card(
                 "Overall ESG Score",
-                f"{env_score:.1f}",
-                "↑ 2.1% from last period",
+                f"{overall_score:.1f}",
+                "Overall performance",
                 "#6B46C1"
             )
         
         with col2:
-            self._metric_card(
-                "Sector Ranking",
-                "Top 25%",
-                "↑ 5 positions",
-                "#2563EB"
-            )
-        
-        with col3:
+            completed_kpis = sum(len(data) for data in categorized_data.values())
+            total_kpis = self.data_manager.get_total_kpi_len(st.session_state.selected_industry)
             self._metric_card(
                 "Completion Rate",
-                f"{len(kpi_data)}/{len(SECTORS[st.session_state.selected_sector]['mandatory_kpis'])}",
+                f"{completed_kpis}/{total_kpis}",
                 "Mandatory KPIs",
                 "#059669"
             )
-
-    def _render_kpi_comparison_chart(self, kpi_data):
-        st.markdown("### KPI Performance")
         
-        # Create comparison chart
+        with col3:
+            highest_cat = max(scores.items(), key=lambda x: x[1]) if scores else ("None", 0)
+            self._metric_card(
+                "Top Category",
+                f"{highest_cat[0]}",
+                f"Score: {highest_cat[1]:.1f}",
+                "#2563EB"
+            )
+
+    def _render_category_tab(self, category, category_data):
+        col1, col2 = st.columns([0.6, 0.4])
+        
+        with col1:
+            self._render_kpi_comparison_chart(category_data, category)
+        
+        with col2:
+            self._render_category_performance_radar(category_data)
+        
+        self._render_kpi_table(category_data)
+
+    def _render_kpi_comparison_chart(self, kpi_data, category):
+        st.markdown(f"### {category} KPI Performance")
+        
         fig = go.Figure()
         
-        # Add KPI values
         fig.add_trace(go.Bar(
             x=list(kpi_data.keys()),
             y=list(kpi_data.values()),
-            marker_color='#6B46C1'
+            marker_color='#6B46C1',
+            name='Current Value'
         ))
         
         # Add industry average (dummy data for Phase 1)
@@ -117,18 +152,23 @@ class DashboardPage:
         
         st.plotly_chart(fig, use_container_width=True)
 
-    def _render_category_performance(self, kpi_data):
-        st.markdown("### Category Performance")
+    def _render_category_performance_radar(self, kpi_data):
+        st.markdown("### Performance Distribution")
         
-        # Dummy data for Phase 1
-        categories = ['Environmental', 'Social', 'Governance']
-        values = [85, 78, 92]
+        # Create metrics for radar chart
+        metrics = ['Average', 'Maximum', 'Minimum', 'Median']
+        values = [
+            sum(kpi_data.values()) / len(kpi_data),
+            max(kpi_data.values()),
+            min(kpi_data.values()),
+            sorted(kpi_data.values())[len(kpi_data)//2]
+        ]
         
         fig = go.Figure()
         
         fig.add_trace(go.Scatterpolar(
             r=values,
-            theta=categories,
+            theta=metrics,
             fill='toself',
             marker_color='#6B46C1'
         ))
@@ -150,7 +190,6 @@ class DashboardPage:
     def _render_kpi_table(self, kpi_data):
         st.markdown("### KPI Details")
         
-        # Create DataFrame
         df = pd.DataFrame({
             'KPI': kpi_data.keys(),
             'Value': kpi_data.values(),
@@ -158,7 +197,6 @@ class DashboardPage:
             'Trend': ['↑' if v >= 75 else '↓' for v in kpi_data.values()]
         })
         
-        # Style the DataFrame
         st.dataframe(
             df,
             hide_index=True,

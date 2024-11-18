@@ -1,6 +1,5 @@
 from typing import Dict, List, Optional
 import pandas as pd
-import numpy as np
 import streamlit as st
 
 class DataManager:
@@ -10,16 +9,14 @@ class DataManager:
         # Clean up any null values in KPI Name
         self.df['KPI Name'] = self.df['KPI Name'].fillna('')
         
-        # Split KPIs into ESG categories (temporary solution)
-        all_kpis = self.df['KPI Name'].unique().tolist()
-        n = len(all_kpis)
-        self.esg_categories = {
-            'Environmental': all_kpis[:n//3],
-            'Social': all_kpis[n//3:2*n//3],
-            'Governance': all_kpis[2*n//3:]
+        # Map cluster numbers to ESG categories
+        self.cluster_to_category = {
+            0: 'Environmental',
+            1: 'Social',
+            2: 'Governance'
         }
         
-        # Dictionary to store KPI types (can be loaded from a config file later)
+        # Dictionary to store KPI types
         self.kpi_types = {}
         
     def get_industries(self) -> List[str]:
@@ -27,12 +24,21 @@ class DataManager:
         return sorted(self.df['Industry'].unique().tolist())
     
     def get_industry_kpis_by_category(self, industry: str) -> Dict[str, List[str]]:
-        """Get KPIs for an industry organized by ESG category"""
-        industry_kpis = self.df[self.df['Industry'] == industry]['KPI Name'].unique().tolist()
-        return {
-            category: [kpi for kpi in kpis if kpi in industry_kpis]
-            for category, kpis in self.esg_categories.items()
+        """Get KPIs for an industry organized by ESG category based on cluster_num"""
+        industry_data = self.df[self.df['Industry'] == industry]
+        
+        categorized_kpis = {
+            'Environmental': [],
+            'Social': [],
+            'Governance': []
         }
+        
+        for _, row in industry_data.iterrows():
+            category = self.cluster_to_category.get(row['Cluster'])
+            if category:
+                categorized_kpis[category].append(row['KPI Name'])
+                
+        return categorized_kpis
     
     def get_kpi_details(self, kpi_name: str) -> Dict:
         """Get details for a specific KPI"""
@@ -41,8 +47,13 @@ class DataManager:
             'specification_id': kpi_data['Specification ID'],
             'scope': kpi_data['Scope'],
             'specification': kpi_data['Specification'],
-            'type': self.kpi_types.get(kpi_name, 'qualitative')  # Default to quantitative
+            'type': self.kpi_types.get(kpi_name, 'quantitative')
         }
+    
+    def get_total_kpi_len(self, kpi_name: str) -> List[str]:
+        """Get total length of KPI"""
+        total_len = len(self.df[self.df['Industry'] == kpi_name])
+        return total_len
     
     def search_industries(self, query: str) -> List[str]:
         """Search industries based on partial string match"""
@@ -66,7 +77,6 @@ class DataManager:
         """Process uploaded CSV file for KPI data"""
         try:
             df = pd.read_csv(file)
-            # Using proper indexing to avoid warning
             return float(df.iloc[0].iloc[0])
         except Exception as e:
             st.error(f"Error processing CSV: {str(e)}")
