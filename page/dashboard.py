@@ -113,7 +113,7 @@ class DashboardPage:
             self._render_kpi_comparison_chart(category_data, category)
         
         with col2:
-            self._render_category_performance_radar(category_data)
+            self._render_category_performance_radar(category_data,category)
         
         self._render_kpi_table(category_data)
 
@@ -152,7 +152,7 @@ class DashboardPage:
         
         st.plotly_chart(fig, use_container_width=True)
 
-    def _render_category_performance_radar(self, kpi_data):
+    def _render_category_performance_radar(self, kpi_data,category):
         st.markdown("### Performance Distribution")
         
         # Create metrics for radar chart
@@ -185,7 +185,7 @@ class DashboardPage:
             margin=dict(t=0, b=0, l=30, r=30)
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, use_container_width=True,key=hash(category))
 
     def _render_kpi_table(self, kpi_data):
         st.markdown("### KPI Details")

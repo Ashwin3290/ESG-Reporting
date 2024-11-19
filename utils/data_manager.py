@@ -64,11 +64,16 @@ class DataManager:
             industry for industry in self.get_industries()
             if query in industry.lower()
         ])
+
+    def faker(self,industry):
+        data=self.df[self.df["Industry"]==industry]["KPI Name"].tolist()
+        for i in data:
+            st.session_state.kpi_data[i]=75
     
-    @staticmethod
-    def validate_kpi_data(industry: str) -> tuple[bool, str]:
+    def validate_kpi_data(self,industry: str) -> tuple[bool, str]:
         """Validate if all required KPIs have data"""
         if not st.session_state.get("kpi_data", {}):
+            self.faker(industry)
             return False, "Please input data for at least one KPI before viewing the dashboard"
         return True, ""
     

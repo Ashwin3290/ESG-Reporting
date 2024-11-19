@@ -79,6 +79,32 @@ class KPIsPage:
             with modal.container():
                 self._render_text_input_modal()
 
+        st.markdown("""
+            <style>
+                .footer-container {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    background: white;
+                    padding: 1rem;
+                    border-top: 1px solid #E5E7EB;
+                }
+            </style>
+        """, unsafe_allow_html=True)
+
+        st.markdown('<div class="footer-container">', unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([0.4, 0.2, 0.4])
+        with col2:
+            if st.button("View Dashboard", type="primary", key="view_dashboard", use_container_width=True):
+                is_valid, message = self.data_manager.validate_kpi_data(industry)
+                if is_valid:
+                    st.session_state.current_page = "dashboard"
+                    st.rerun()
+                else:
+                    st.error(message)
+        st.markdown('</div>', unsafe_allow_html=True)
+
     def _render_file_management(self):
         """Render the file management section"""
         st.subheader("Upload Data Files")
@@ -108,7 +134,6 @@ class KPIsPage:
         """Automatically map columns if exact matches are found"""
         mappings_updated = False
         for col_key, col_info in required_columns.items():
-            # Check if the required column name exists in available columns
             if col_info['name'] in available_columns:
                 if st.session_state.column_mappings.get(col_key) != col_info['name']:
                     st.session_state.column_mappings[col_key] = col_info['name']
@@ -149,7 +174,8 @@ class KPIsPage:
         if mappings_updated:
             self._process_mapped_data(selected_file)
             st.success("Some columns were automatically mapped based on matching names!")
-        
+            st.rerun()
+
         st.subheader("Map Required Columns")
         
         # Create column mappings with pre-selected values from auto-mapping
@@ -180,6 +206,7 @@ class KPIsPage:
         
         if mappings_changed:
             self._process_mapped_data(selected_file)
+            st.rerun()
 
     def _process_mapped_data(self, filename):
         """Process and save data based on column mappings with enhanced error handling"""
@@ -252,7 +279,6 @@ class KPIsPage:
             col1, col2 = st.columns([0.7, 0.3])
             kpi_details = self.data_manager.get_kpi_details(kpi)
             if kpi_details["specification"] in self.kpi_specs.keys():
-                print(kpi_details["specification"])
                 with col1:
                     st.markdown(f"**{kpi}**")
                     st.markdown(f"*Specification:* {kpi_details['specification']}")
