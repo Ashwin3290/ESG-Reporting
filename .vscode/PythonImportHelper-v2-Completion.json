@@ -1,0 +1,359 @@
+[
+    {
+        "label": "pandas",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "pandas",
+        "description": "pandas",
+        "detail": "pandas",
+        "documentation": {}
+    },
+    {
+        "label": "streamlit",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "streamlit",
+        "description": "streamlit",
+        "detail": "streamlit",
+        "documentation": {}
+    },
+    {
+        "label": "plotly.graph_objects",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "plotly.graph_objects",
+        "description": "plotly.graph_objects",
+        "detail": "plotly.graph_objects",
+        "documentation": {}
+    },
+    {
+        "label": "plotly.express",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "plotly.express",
+        "description": "plotly.express",
+        "detail": "plotly.express",
+        "documentation": {}
+    },
+    {
+        "label": "DataManager",
+        "importPath": "utils.data_manager",
+        "description": "utils.data_manager",
+        "isExtraImport": true,
+        "detail": "utils.data_manager",
+        "documentation": {}
+    },
+    {
+        "label": "DataManager",
+        "importPath": "utils.data_manager",
+        "description": "utils.data_manager",
+        "isExtraImport": true,
+        "detail": "utils.data_manager",
+        "documentation": {}
+    },
+    {
+        "label": "DataManager",
+        "importPath": "utils.data_manager",
+        "description": "utils.data_manager",
+        "isExtraImport": true,
+        "detail": "utils.data_manager",
+        "documentation": {}
+    },
+    {
+        "label": "CUSTOM_CSS",
+        "importPath": "config.constants",
+        "description": "config.constants",
+        "isExtraImport": true,
+        "detail": "config.constants",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "Modal",
+        "importPath": "streamlit_modal",
+        "description": "streamlit_modal",
+        "isExtraImport": true,
+        "detail": "streamlit_modal",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "site",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "site",
+        "description": "site",
+        "detail": "site",
+        "documentation": {}
+    },
+    {
+        "label": "sys",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "sys",
+        "description": "sys",
+        "detail": "sys",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "random",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "random",
+        "description": "random",
+        "detail": "random",
+        "documentation": {}
+    },
+    {
+        "label": "HomePage",
+        "importPath": "page.home",
+        "description": "page.home",
+        "isExtraImport": true,
+        "detail": "page.home",
+        "documentation": {}
+    },
+    {
+        "label": "KPIsPage",
+        "importPath": "page.sector_kpis",
+        "description": "page.sector_kpis",
+        "isExtraImport": true,
+        "detail": "page.sector_kpis",
+        "documentation": {}
+    },
+    {
+        "label": "DashboardPage",
+        "importPath": "page.dashboard",
+        "description": "page.dashboard",
+        "isExtraImport": true,
+        "detail": "page.dashboard",
+        "documentation": {}
+    },
+    {
+        "label": "COLORS",
+        "kind": 5,
+        "importPath": "config.constants",
+        "description": "config.constants",
+        "peekOfCode": "COLORS = {\n    \"primary\": \"#6B46C1\",  # Purple from the design\n    \"background\": \"#F3F4F6\",\n    \"text\": \"#1F2937\",\n    \"border\": \"#E5E7EB\",\n}\n# CSS for custom styling\nCUSTOM_CSS = \"\"\"\n<style>\n    .stApp {",
+        "detail": "config.constants",
+        "documentation": {}
+    },
+    {
+        "label": "CUSTOM_CSS",
+        "kind": 5,
+        "importPath": "config.constants",
+        "description": "config.constants",
+        "peekOfCode": "CUSTOM_CSS = \"\"\"\n<style>\n    .stApp {\n        background-color: #F3F4F6;\n    }\n    .sector-card {\n        background-color: white;\n        padding: 1.5rem;\n        border-radius: 0.5rem;\n        border: 1px solid #E5E7EB;",
+        "detail": "config.constants",
+        "documentation": {}
+    },
+    {
+        "label": "SECTORS",
+        "kind": 5,
+        "importPath": "config.constants",
+        "description": "config.constants",
+        "peekOfCode": "SECTORS = {\n    \"Technology\": {\n        \"mandatory_kpis\": [\n            \"Carbon Emissions (tCO2e)\",\n            \"Energy Consumption (MWh)\",\n            \"Data Privacy Incidents\",\n            \"Cybersecurity Breaches\",\n        ],\n        \"optional_kpis\": [\n            \"Water Usage (m³)\",",
+        "detail": "config.constants",
+        "documentation": {}
+    },
+    {
+        "label": "SAMPLE_KPI_STRUCTURE",
+        "kind": 5,
+        "importPath": "config.constants",
+        "description": "config.constants",
+        "peekOfCode": "SAMPLE_KPI_STRUCTURE = {\n    \"KPI_Name\": [],\n    \"Value\": [],\n    \"Unit\": [],\n    \"Year\": [],\n    \"Quarter\": [],\n}",
+        "detail": "config.constants",
+        "documentation": {}
+    },
+    {
+        "label": "DashboardPage",
+        "kind": 6,
+        "importPath": "page.dashboard",
+        "description": "page.dashboard",
+        "peekOfCode": "class DashboardPage:\n    def __init__(self):\n        self.data_manager = DataManager()\n        self.categories = ['Environmental', 'Social', 'Governance']\n    def render(self):\n        st.markdown(CUSTOM_CSS, unsafe_allow_html=True)\n        if \"selected_industry\" not in st.session_state or \"kpi_data\" not in st.session_state:\n            st.error(\"No data available for dashboard\")\n            return\n        sector = st.session_state.selected_industry",
+        "detail": "page.dashboard",
+        "documentation": {}
+    },
+    {
+        "label": "HomePage",
+        "kind": 6,
+        "importPath": "page.home",
+        "description": "page.home",
+        "peekOfCode": "class HomePage:\n    def __init__(self):\n        self.data_manager = DataManager()\n    def render(self):\n        # Custom CSS for larger cards\n        st.markdown(\"\"\"\n            <style>\n                .industry-card {\n                    background-color: white;\n                    border: 1px solid #E5E7EB;",
+        "detail": "page.home",
+        "documentation": {}
+    },
+    {
+        "label": "KPIsPage",
+        "kind": 6,
+        "importPath": "page.sector_kpis",
+        "description": "page.sector_kpis",
+        "peekOfCode": "class KPIsPage:\n    def __init__(self):\n        self.data_manager = DataManager()\n        if \"modal_state\" not in st.session_state:\n            st.session_state.modal_state = False\n        if \"current_kpi\" not in st.session_state:\n            st.session_state.current_kpi = None\n        if \"kpi_data\" not in st.session_state:\n            st.session_state.kpi_data = {}\n        if \"uploaded_files\" not in st.session_state:",
+        "detail": "page.sector_kpis",
+        "documentation": {}
+    },
+    {
+        "label": "DataManager",
+        "kind": 6,
+        "importPath": "utils.data_manager",
+        "description": "utils.data_manager",
+        "peekOfCode": "class DataManager:\n    def __init__(self):\n        # Load CSV data\n        self.df = pd.read_csv('data\\kpi_data.csv')\n        # Clean up any null values in KPI Name\n        self.df['KPI Name'] = self.df['KPI Name'].fillna('')\n        # Map cluster numbers to ESG categories\n        self.cluster_to_category = {\n            0: 'Environmental',\n            1: 'Social',",
+        "detail": "utils.data_manager",
+        "documentation": {}
+    },
+    {
+        "label": "bin_dir",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "bin_dir = os.path.dirname(abs_file)\nbase = bin_dir[: -len(\"Scripts\") - 1]  # strip away the bin part from the __file__, plus the path separator\n# prepend bin to PATH (this file is inside the bin directory)\nos.environ[\"PATH\"] = os.pathsep.join([bin_dir, *os.environ.get(\"PATH\", \"\").split(os.pathsep)])\nos.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "base",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "base = bin_dir[: -len(\"Scripts\") - 1]  # strip away the bin part from the __file__, plus the path separator\n# prepend bin to PATH (this file is inside the bin directory)\nos.environ[\"PATH\"] = os.pathsep.join([bin_dir, *os.environ.get(\"PATH\", \"\").split(os.pathsep)])\nos.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path.decode(\"utf-8\") if \"\" else path)",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"PATH\"]",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "os.environ[\"PATH\"] = os.pathsep.join([bin_dir, *os.environ.get(\"PATH\", \"\").split(os.pathsep)])\nos.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path.decode(\"utf-8\") if \"\" else path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"VIRTUAL_ENV\"]",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "os.environ[\"VIRTUAL_ENV\"] = base  # virtual env is right above bin directory\nos.environ[\"VIRTUAL_ENV_PROMPT\"] = \"\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path.decode(\"utf-8\") if \"\" else path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "os.environ[\"VIRTUAL_ENV_PROMPT\"]",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "os.environ[\"VIRTUAL_ENV_PROMPT\"] = \"\" or os.path.basename(base)  # noqa: SIM222\n# add the virtual environments libraries to the host python import mechanism\nprev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path.decode(\"utf-8\") if \"\" else path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "prev_length",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "prev_length = len(sys.path)\nfor lib in \"..\\\\Lib\\\\site-packages\".split(os.pathsep):\n    path = os.path.realpath(os.path.join(bin_dir, lib))\n    site.addsitedir(path.decode(\"utf-8\") if \"\" else path)\nsys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "sys.path[:]",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "sys.path[:] = sys.path[prev_length:] + sys.path[0:prev_length]\nsys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "sys.real_prefix",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "sys.real_prefix = sys.prefix\nsys.prefix = base",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "sys.prefix",
+        "kind": 5,
+        "importPath": "venv.Scripts.activate_this",
+        "description": "venv.Scripts.activate_this",
+        "peekOfCode": "sys.prefix = base",
+        "detail": "venv.Scripts.activate_this",
+        "documentation": {}
+    },
+    {
+        "label": "UnifiedKPISampleDataGenerator",
+        "kind": 6,
+        "importPath": "data_gen",
+        "description": "data_gen",
+        "peekOfCode": "class UnifiedKPISampleDataGenerator:\n    def __init__(self, kpi_specs_path='data/kpis.json'):\n        \"\"\"\n        Initialize the sample data generator with KPI specifications\n        :param kpi_specs_path: Path to the JSON file containing KPI specifications\n        \"\"\"\n        # Load KPI specifications\n        with open(kpi_specs_path, 'r') as f:\n            self.kpi_specs = json.load(f)\n    def generate_sample_data(self, num_rows=100):",
+        "detail": "data_gen",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "main",
+        "description": "main",
+        "peekOfCode": "def main():\n    # Initialize session state\n    if \"current_page\" not in st.session_state:\n        st.session_state.current_page = \"home\"\n    # Page routing\n    if st.session_state.current_page == \"home\":\n        HomePage().render()\n    elif st.session_state.current_page == \"sector_kpis\":\n        KPIsPage().render()\n    elif st.session_state.current_page == \"dashboard\":",
+        "detail": "main",
+        "documentation": {}
+    }
+]

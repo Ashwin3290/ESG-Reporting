@@ -1,0 +1,598 @@
+{
+    "Energy consumption, total": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "total_energy_consumption",
+                "description": "Total energy consumed across all operations and facilities",
+                "type": "number"
+            },
+            {
+                "name": "energy_by_source",
+                "description": "Breakdown of energy consumption by source (electricity, fuel, etc.)",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all energy consumption sources converted to a common unit",
+        "unit_of_measurement": "Megawatt hours (MWh) or Gigajoules (GJ)"
+    },
+    "GHG emissions, total (scope I,II)": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "scope_1_emissions",
+                "description": "Direct GHG emissions from owned or controlled sources",
+                "type": "number"
+            },
+            {
+                "name": "scope_2_emissions",
+                "description": "Indirect GHG emissions from purchased energy",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of Scope 1 and Scope 2 emissions, converted to CO2 equivalent",
+        "unit_of_measurement": "Metric tons of CO2 equivalent (tCO2e)"
+    },
+    "Percentage of FTE leaving p.a./total FTE": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "total_fte_start",
+                "description": "Total number of FTE at start of period",
+                "type": "number"
+            },
+            {
+                "name": "fte_leaving",
+                "description": "Number of FTE who left during the period",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(FTE leaving / Total FTE start) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Average expenses on training per FTE p.a": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "total_training_expenses",
+                "description": "Total expenses on training and development",
+                "type": "number"
+            },
+            {
+                "name": "total_fte",
+                "description": "Total number of full-time equivalent employees",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Total training expenses / Total FTE",
+        "unit_of_measurement": "Currency per FTE"
+    },
+    "Age structure/distribution (number of FTEs per age group, 10-year intervals)": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "age_distribution",
+                "description": "Number of employees in each age bracket",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Distribution of employees across predefined age brackets",
+        "unit_of_measurement": "Number of FTEs per age group"
+    },
+    "Total amount of bonuses, incentives and stock options paid out in \u00e2\u201a\u00ac,$": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "innovation_bonuses",
+                "description": "Bonuses related to innovation activities",
+                "type": "number"
+            },
+            {
+                "name": "innovation_incentives",
+                "description": "Other innovation-related compensation",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of innovation-related bonuses and incentives",
+        "unit_of_measurement": "Currency"
+    },
+    "Total number of FTEs who receive 90 % of total amount of bonuses, incentivesand stock options": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "innovation_compensation_recipients",
+                "description": "Number of FTEs receiving innovation-related compensation",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Count of FTEs receiving innovation-related compensation",
+        "unit_of_measurement": "Number of FTEs"
+    },
+    "Expenses and fines on filings, law suits related to anti-competitivebehavior, anti-trust and monopoly practices": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "legal_expenses",
+                "description": "Expenses related to legal proceedings",
+                "type": "number"
+            },
+            {
+                "name": "fines_paid",
+                "description": "Fines and penalties paid",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all legal expenses and fines",
+        "unit_of_measurement": "Currency"
+    },
+    "Percentage of revenues in regions with Transparency International corruptionindex below 6.0": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "revenue_by_region",
+                "description": "Revenue from regions with specified Transparency International corruption index",
+                "type": "number"
+            },
+            {
+                "name": "total_revenue",
+                "description": "Total company revenue",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Revenue from specified regions / Total revenue) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Percentage of new products or modified products introduced lessproducts than 12 months ago": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "new_product_revenue",
+                "description": "Revenue from new or modified products",
+                "type": "number"
+            },
+            {
+                "name": "total_revenue",
+                "description": "Total revenue",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(New product revenue / Total revenue) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Total CO\u00b2,NOx, SOx, VOC emissions in million tonnes": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "co2_emissions",
+                "description": "Total CO2 emissions",
+                "type": "number"
+            },
+            {
+                "name": "nox_emissions",
+                "description": "Total NOx emissions",
+                "type": "number"
+            },
+            {
+                "name": "sox_emissions",
+                "description": "Total SOx emissions",
+                "type": "number"
+            },
+            {
+                "name": "voc_emissions",
+                "description": "Total VOC emissions",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all emission types converted to appropriate units",
+        "unit_of_measurement": "Million tonnes"
+    },
+    "Total waste in tonnes": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "scope_1_waste",
+                "description": "Direct waste from owned or controlled operations",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all waste generated directly",
+        "unit_of_measurement": "Tonnes"
+    },
+    "Percentage of total waste which is recycled": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "recycled_waste",
+                "description": "Amount of waste recycled",
+                "type": "number"
+            },
+            {
+                "name": "total_waste",
+                "description": "Total waste generated",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Recycled waste / Total waste) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Improvement rate of product energy efficiency compared to previous year": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "current_energy_efficiency",
+                "description": "Current product energy efficiency rating",
+                "type": "number"
+            },
+            {
+                "name": "previous_energy_efficiency",
+                "description": "Previous product energy efficiency rating",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "((Current efficiency - Previous efficiency) / Previous efficiency) * 100",
+        "unit_of_measurement": "Percentage improvement (%)"
+    },
+    "Contributions to political parties as a percentage of total revenuespolitical parties": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "political_contributions",
+                "description": "Total contributions to political parties",
+                "type": "number"
+            },
+            {
+                "name": "total_revenue",
+                "description": "Total company revenue",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Political contributions / Total revenue) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Total number of fatalities in relation to FTEsS04-04 II Total number of injuries in relation to FTEs": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "fatalities",
+                "description": "Number of workplace fatalities",
+                "type": "number"
+            },
+            {
+                "name": "total_fte",
+                "description": "Total number of FTEs",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Fatalities / Total FTE",
+        "unit_of_measurement": "Ratio"
+    },
+    "Total spending on product safety corporateAspects of Products": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "safety_spending",
+                "description": "Total spending on product safety",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all product safety-related expenditures",
+        "unit_of_measurement": "Currency"
+    },
+    "Percentage of total products sold or shipped corporate subject to product recallsfor safety or health reasons": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "recalled_products",
+                "description": "Number of products recalled",
+                "type": "number"
+            },
+            {
+                "name": "total_products",
+                "description": "Total products sold or shipped",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Recalled products / Total products) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Total cost of relocation in monetary terms i.e. currency incl. Indemnity, pay-off,relocation of jobs outplacement, hiring, training, consulting": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "relocation_costs",
+                "description": "Total costs associated with restructuring and relocation",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all relocation and restructuring expenses",
+        "unit_of_measurement": "Currency"
+    },
+    "Average length of customer relationship in years": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "customer_relationship_duration",
+                "description": "Duration of each customer relationship",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Average of all customer relationship durations",
+        "unit_of_measurement": "Years"
+    },
+    "Percentage of total customers surveyed comprising satisfied customers": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "customers_surveyed",
+                "description": "Number of customers surveyed",
+                "type": "number"
+            },
+            {
+                "name": "total_customers",
+                "description": "Total number of customers",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Customers surveyed / Total customers) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "CapEx allocation to investments on ESG relevant aspects of business as definedby the company (refered to Introduction 1.8.1. KPIs & Definitions)": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "esg_investments",
+                "description": "Capital expenditure on ESG initiatives",
+                "type": "number"
+            },
+            {
+                "name": "total_capex",
+                "description": "Total capital expenditure",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(ESG investments / Total CapEx) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Capacity utilisation as a percentage of total available facilities": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "actual_capacity_used",
+                "description": "Actual capacity utilization",
+                "type": "number"
+            },
+            {
+                "name": "total_capacity",
+                "description": "Total available capacity",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Actual capacity used / Total capacity) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Total number of suppliersV28-02 II Percentage of sourcing from 3 biggest external suppliersV28-03 II Turnover of suppliers in percent": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "total_suppliers",
+                "description": "Total number of suppliers",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Count of all active suppliers",
+        "unit_of_measurement": "Number"
+    },
+    "Hazardous waste total in tonnes total": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "hazardous_waste",
+                "description": "Total hazardous waste generated",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all hazardous waste",
+        "unit_of_measurement": "Tonnes"
+    },
+    "TOP 2 components of waste incl. emissions to soil by environmental importance(according to TRI; PRTR; and EPER) Rank 1E07-02 III TOP 2 components of waste incl. emissions to soil by environmental importance(according to TRI; PRTR; and EPER) Rank 2": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "waste_component_1",
+                "description": "Quantity of primary waste component",
+                "type": "number"
+            },
+            {
+                "name": "waste_component_2",
+                "description": "Quantity of secondary waste component",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of top 2 waste components",
+        "unit_of_measurement": "Tonnes"
+    },
+    "Percentage of material supply of cobalt covered by hedging contractsE17-05 III Percentage of revenue from products that contain cobalt to total revenueE17-06 III Total cobalt purchasedE17-07 III Percentage of material supply of titanium covered by hedging contractsE17-08 III Percentage of revenue from products that contain titanium to total revenueE17-09 III Total titanium purchased": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "cobalt_supply_covered",
+                "description": "Amount of cobalt supply covered by contracts",
+                "type": "number"
+            },
+            {
+                "name": "total_cobalt_needed",
+                "description": "Total cobalt supply needed",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Cobalt supply covered / Total cobalt needed) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Waste effluent water in cubic meters": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "effluent_water",
+                "description": "Total waste water discharged",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "Sum of all waste water discharge",
+        "unit_of_measurement": "Cubic meters"
+    },
+    "Number of sites with ISO 14001 certification / number of total sitesCompatibility": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "iso_certified_sites",
+                "description": "Number of sites with ISO 14001 certification",
+                "type": "number"
+            },
+            {
+                "name": "total_sites",
+                "description": "Total number of sites",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(ISO certified sites / Total sites) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Share of market by product, product line, segment, region or total": {
+        "is_numerical": true,
+        "required_data": [
+            {
+                "name": "product_revenue",
+                "description": "Revenue by product/product line/segment",
+                "type": "number"
+            },
+            {
+                "name": "total_market_revenue",
+                "description": "Total market revenue for product category",
+                "type": "number"
+            }
+        ],
+        "calculation_logic": "(Product revenue / Total market revenue) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Key Performance Narrative (Please answer the questions in max. 500 words)How do you ensure that your suppliers adhere to a standard of ESG compliancesimilar to that of your company?V28-05 III Key Performance Narrative (Please answer the questions in max. 500 words)When assessing the performance of your procurement and purchasing functions:Do you incentivise your procurement management for the selection of ESGperforming suppliers even if you might have to carry a premium over lessexpensive suppliers?": {
+        "is_numerical": false,
+        "required_data": [
+            {
+                "name": "supply_chain_narrative",
+                "description": "Detailed narrative response about supply chain management",
+                "type": "text"
+            }
+        ],
+        "possible_values": [
+            "Comprehensive narrative addressing:",
+            "- Supply chain risk management",
+            "- Supplier evaluation processes",
+            "- Environmental and social compliance",
+            "- Geographic distribution",
+            "- Supplier diversity initiatives",
+            "- Continuous improvement programs"
+        ]
+    },
+    "Water consumption in m³": {
+        "is_numerical": true,
+        "required_data": [
+        {
+            "name": "total_water_consumption",
+            "description": "Total water consumed across all facilities and operations",
+            "type": "number"
+        },
+        {
+            "name": "water_by_source",
+            "description": "Breakdown of water consumption by source (municipal, groundwater, etc.)",
+            "type": "number"
+        }
+        ],
+        "calculation_logic": "Sum of all water consumption from all sources",
+        "unit_of_measurement": "Cubic meters (m³)"
+    },
+    "Percentage of total facilities certificated ac...": {
+        "is_numerical": true,
+        "required_data": [
+        {
+            "name": "certified_facilities",
+            "description": "Number of facilities with required certification",
+            "type": "number"
+        },
+        {
+            "name": "total_facilities",
+            "description": "Total number of facilities",
+            "type": "number"
+        }
+        ],
+        "calculation_logic": "(Number of certified facilities / Total number of facilities) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Total spendings in monetary terms i.e. currenc...": {
+        "is_numerical": true,
+        "required_data": [
+        {
+            "name": "maintenance_costs",
+            "description": "Costs related to maintenance activities",
+            "type": "number"
+        },
+        {
+            "name": "safety_costs",
+            "description": "Costs related to safety measures",
+            "type": "number"
+        }
+        ],
+        "calculation_logic": "Sum of all maintenance and safety-related expenditures",
+        "unit_of_measurement": "Currency"
+    },
+    "Vertical range of manufacturing in Percentmanu...": {
+        "is_numerical": true,
+        "required_data": [
+        {
+            "name": "in_house_manufacturing_value",
+            "description": "Value of in-house manufacturing activities",
+            "type": "number"
+        },
+        {
+            "name": "total_manufacturing_value",
+            "description": "Total value of all manufacturing activities",
+            "type": "number"
+        }
+        ],
+        "calculation_logic": "(In-house manufacturing value / Total manufacturing value) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    },
+    "Water (in m³) used per amount (e.g. in tonnes)...": {
+        "is_numerical": true,
+        "required_data": [
+        {
+            "name": "water_consumption",
+            "description": "Total water consumption in production",
+            "type": "number"
+        },
+        {
+            "name": "production_volume",
+            "description": "Total production volume",
+            "type": "number"
+        }
+        ],
+        "calculation_logic": "Total water consumption / Total production volume",
+        "unit_of_measurement": "Cubic meters per tonne (m³/t)"
+    },
+    "Percentage of total suppliers and supply chain...": {
+        "is_numerical": true,
+        "required_data": [
+        {
+            "name": "suppliers_with_agreements",
+            "description": "Number of suppliers with formal agreements",
+            "type": "number"
+        },
+        {
+            "name": "total_suppliers",
+            "description": "Total number of suppliers",
+            "type": "number"
+        }
+        ],
+        "calculation_logic": "(Number of suppliers with agreements / Total number of suppliers) * 100",
+        "unit_of_measurement": "Percentage (%)"
+    }
+}
