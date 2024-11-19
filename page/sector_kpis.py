@@ -4,27 +4,31 @@ import os
 import json
 from streamlit_modal import Modal
 from utils.data_manager import DataManager
+from utils.kpi_calculator import KPICalculator
 
 class KPIsPage:
     def __init__(self):
         self.data_manager = DataManager()
-        if "modal_state" not in st.session_state:
-            st.session_state.modal_state = False
-        if "current_kpi" not in st.session_state:
-            st.session_state.current_kpi = None
-        if "kpi_data" not in st.session_state:
-            st.session_state.kpi_data = {}
-        if "uploaded_files" not in st.session_state:
-            st.session_state.uploaded_files = {}
-        if "column_mappings" not in st.session_state:
-            st.session_state.column_mappings = {}
+        self.kpi_calculator = KPICalculator
+        self._initialize_session_state()
+        self._setup_directory()
+        self._load_kpi_specs()
+
+    def _initialize_session_state(self):
+        """Initialize all session state variables"""
+        session_vars = {
+            "modal_state": False,
+            "current_kpi": None,
+            "kpi_data": {},
+            "uploaded_files": {},
+            "column_mappings": {},
+            "mapping_status": {},
+            "calculated_values": {}  # New: Store calculated KPI values
+        }
         
-        # Create session_files directory if it doesn't exist
-        os.makedirs("session_files", exist_ok=True)
-        
-        # Load KPI specifications
-        with open('data/kpis.json', 'rb') as f:
-            self.kpi_specs = json.load(f)
+        for var, default in session_vars.items():
+            if var not in st.session_state:
+                st.session_state[var] = default
 
     def render(self):
         if "selected_industry" not in st.session_state:
@@ -140,11 +144,93 @@ class KPIsPage:
                     mappings_updated = True
         return mappings_updated
 
+    def _setup_directory(self):
+        """Create necessary directories"""
+        os.makedirs("session_files", exist_ok=True)
+
+    def _load_kpi_specs(self):
+        """Load KPI specifications from JSON file"""
+        with open('data\kpis.json',"rb") as f:
+            self.kpi_specs=json.load(f)
+
+    def _get_required_columns(self, kpi_name):
+        """Get required columns for a specific KPI"""
+        kpi_spec = self.kpi_specs.get(kpi_name, {})
+        if not kpi_spec:
+            return []
+            
+        return [
+            {
+                'name': item['name'],
+                'description': item['description']
+            }
+            for item in kpi_spec.get('required_data', [])
+        ]
+
+    def _process_mapped_data(self, filename, kpi_name):
+        """Process mapped data for a specific KPI"""
+        try:
+            df = st.session_state.uploaded_files[filename]['data']
+            required_columns = self._get_required_columns(kpi_name)
+            
+            if not required_columns:
+                st.warning(f"No specification found for {kpi_name}")
+                return False
+            
+            # Get mappings for this KPI
+            mappings = {}
+            for col_info in required_columns:
+                mapping_key = f"{kpi_name}_{col_info['name']}"
+                mapped_column = st.session_state.column_mappings.get(mapping_key)
+                if mapped_column:
+                    mappings[col_info['name']] = mapped_column
+
+            # Validate mappings
+            if len(mappings) != len(required_columns):
+                missing = [col['name'] for col in required_columns if col['name'] not in mappings]
+                st.warning(f"Incomplete mapping for {kpi_name}. Missing: {', '.join(missing)}")
+                st.session_state.mapping_status[kpi_name] = "incomplete"
+                return False
+
+            # Validate columns exist in DataFrame
+            missing_cols = [col for col in mappings.values() if col not in df.columns]
+            if missing_cols:
+                st.warning(f"Columns not found in DataFrame: {', '.join(missing_cols)}")
+                st.session_state.mapping_status[kpi_name] = "invalid"
+                return False
+
+            # Create processed DataFrame
+            selected_df = df[list(mappings.values())].copy()
+            selected_df.columns = list(mappings.keys())
+            
+            # Calculate KPI value
+            result, error = self.kpi_calculator.calculate_kpi(kpi_name, selected_df)
+            
+            if result is not None:
+                st.session_state.calculated_values[kpi_name] = result
+                st.session_state.kpi_data[kpi_name] = result  # Update kpi_data for dashboard
+                st.session_state.mapping_status[kpi_name] = "complete"
+                st.success(f"Calculated {kpi_name}: {result:.2f}")
+            else:
+                st.error(f"Calculation error for {kpi_name}: {error}")
+                st.session_state.mapping_status[kpi_name] = "error"
+                return False
+            
+            # Save processed data
+            output_filename = f"session_files/{kpi_name}_cal_data.csv"
+            selected_df.to_csv(output_filename, index=False)
+            
+            return True
+
+        except Exception as e:
+            st.error(f"Error processing data for {kpi_name}: {str(e)}")
+            st.session_state.mapping_status[kpi_name] = "error"
+            return False
+
     def _render_column_mapping(self):
-        """Render the column mapping interface with auto-mapping"""
+        """Render improved column mapping interface"""
         st.subheader("Map Data Columns")
         
-        # File selection
         selected_file = st.selectbox(
             "Select Data Source",
             list(st.session_state.uploaded_files.keys()),
@@ -157,120 +243,81 @@ class KPIsPage:
         file_info = st.session_state.uploaded_files[selected_file]
         available_columns = file_info['columns']
         
-        # Collect all required numerical columns across KPIs
-        required_columns = {}
-        for kpi_name, kpi_spec in self.kpi_specs.items():
-            if kpi_spec.get('is_numerical', True):
-                for data_item in kpi_spec.get('required_data', []):
-                    column_key = f"{kpi_name} || {data_item['name']}"
-                    required_columns[column_key] = {
-                        'kpi': kpi_name,
-                        'description': data_item['description'],
-                        'name': data_item['name']
-                    }
-        
-        # Auto-map columns when file is selected or changed
-        mappings_updated = self._auto_map_columns(available_columns, required_columns)
-        if mappings_updated:
-            self._process_mapped_data(selected_file)
-            st.success("Some columns were automatically mapped based on matching names!")
-            st.rerun()
-
-        st.subheader("Map Required Columns")
-        
-        # Create column mappings with pre-selected values from auto-mapping
-        mappings_changed = False
-        for col_key, col_info in required_columns.items():
-            current_mapping = st.session_state.column_mappings.get(col_key)
+        # Group KPIs by category for organized mapping
+        for category in ['Environmental', 'Social', 'Governance']:
+            kpis = self.data_manager.get_industry_kpis_by_category(
+                st.session_state.selected_industry
+            ).get(category, [])
             
-            # Determine the index for the selectbox
-            if current_mapping is None:
-                index = 0
-            else:
-                try:
-                    index = available_columns.index(current_mapping) + 1
-                except ValueError:
-                    index = 0
-            
-            selected_column = st.selectbox(
-                f"{col_info['kpi']} - {col_info['description']} ({col_info['name']})",
-                options=['-- Select Column --'] + available_columns,
-                index=index,
-                key=f"mapping_{col_key}"
-            )
-            
-            if selected_column != '-- Select Column --':
-                if st.session_state.column_mappings.get(col_key) != selected_column:
-                    st.session_state.column_mappings[col_key] = selected_column
-                    mappings_changed = True
-        
-        if mappings_changed:
-            self._process_mapped_data(selected_file)
-            st.rerun()
-
-    def _process_mapped_data(self, filename):
-        """Process and save data based on column mappings with enhanced error handling"""
-        try:
-            df = st.session_state.uploaded_files[filename]['data']
-            
-            # Group mappings by KPI
-            kpi_mappings = {}
-            for col_key, mapped_column in st.session_state.column_mappings.items():
-                if mapped_column:
-                    kpi_name, col_name = col_key.split('||')
-                    if kpi_name not in kpi_mappings:
-                        kpi_mappings[kpi_name] = {}
-                    kpi_mappings[kpi_name][col_name] = mapped_column
-            
-            # Process each KPI's data
-            for kpi_name, mappings in kpi_mappings.items():
-                try:
-                    # Validate KPI specifications exist
-                    if kpi_name not in self.kpi_specs:
-                        st.warning(f"KPI {kpi_name} not found in specifications")
-                        continue
-                    
-                    # Check required columns
-                    required_columns = self.kpi_specs[kpi_name].get('required_data', [])
-                    
-                    # Validate all required columns are mapped
-                    if len(mappings) != len(required_columns):
-                        missing_columns = [
-                            item['name'] for item in required_columns 
-                            if item['name'] not in mappings
-                        ]
-                        st.warning(f"Incomplete mapping for {kpi_name}. Missing: {', '.join(missing_columns)}")
-                        continue
-                    
-                    # Prepare DataFrame with mapped columns
-                    selected_columns = list(mappings.values())
-                    
-                    # Validate all selected columns exist in the DataFrame
-                    missing_df_columns = [col for col in selected_columns if col not in df.columns]
-                    if missing_df_columns:
-                        st.warning(f"Columns not found in DataFrame: {', '.join(missing_df_columns)}")
-                        continue
-                    
-                    # Create DataFrame with selected columns
-                    selected_df = df[selected_columns].copy()
-                    selected_df.columns = list(mappings.keys())
-                    
-                    # Save processed data
-                    output_filename = f"session_files/{kpi_name}_cal_data.csv"
-                    selected_df.to_csv(output_filename, index=False)
-                    
-                    # Update KPI data status
-                    st.session_state.kpi_data[kpi_name] = "Data complete"
-                    st.success(f"Processed data for {kpi_name}")
+            if kpis:
+                st.markdown(f"### {category} KPIs")
                 
-                except Exception as kpi_error:
-                    st.error(f"Error processing KPI {kpi_name}: {str(kpi_error)}")
-        
-        except Exception as overall_error:
-            st.error(f"Critical error in data processing: {str(overall_error)}")
-
+                for kpi in kpis:
+                    kpi_details = self.data_manager.get_kpi_details(kpi)
+                    kpi_name = kpi_details['specification']
+                    
+                    if kpi_name in self.kpi_specs:
+                        st.markdown(f"#### {kpi}")
+                        
+                        # Manual mapping interface
+                        required_columns = self._get_required_columns(kpi_name)
+                        mappings_changed = False
+                        
+                        # Auto-map columns
+                        for col_info in required_columns:
+                            mapping_key = f"{kpi_name}_{col_info['name']}"
+                            current_mapping = st.session_state.column_mappings.get(mapping_key)
+                            
+                            # Auto-map if exact match exists
+                            if not current_mapping and col_info['name'] in available_columns:
+                                st.session_state.column_mappings[mapping_key] = col_info['name']
+                                current_mapping = col_info['name']
+                                mappings_changed = True
+                            
+                            # Create selectbox for column mapping
+                            index = (available_columns.index(current_mapping) + 1 
+                                if current_mapping in available_columns else 0)
+                            
+                            selected_column = st.selectbox(
+                                f"{col_info['description']} ({col_info['name']})",
+                                options=['-- Select Column --'] + available_columns,
+                                index=index,
+                                key=f"mapping_{mapping_key}"
+                            )
+                            
+                            if selected_column != '-- Select Column --':
+                                if st.session_state.column_mappings.get(mapping_key) != selected_column:
+                                    st.session_state.column_mappings[mapping_key] = selected_column
+                                    mappings_changed = True
+                        
+                        if mappings_changed:
+                            self._process_mapped_data(selected_file, kpi_name)
+                        
+                        # Show mapping status and calculated value
+                        status = st.session_state.mapping_status.get(kpi_name, "pending")
+                        status_colors = {
+                            "complete": "green",
+                            "incomplete": "orange",
+                            "invalid": "red",
+                            "error": "red",
+                            "pending": "gray"
+                        }
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown(
+                                f'<p style="color: {status_colors[status]}">Status: {status}</p>',
+                                unsafe_allow_html=True
+                            )
+                        with col2:
+                            if status == "complete":
+                                value = st.session_state.calculated_values.get(kpi_name)
+                                if value is not None:
+                                    st.markdown(f"Value: {value:.2f}")
+                        
+                        st.markdown("---")
+                        
     def _render_kpi_list(self, kpis: list, category: str, tab_idx: int):
-        """Render the list of KPIs with cards"""
         for kpi_idx, kpi in enumerate(kpis):
             unique_key = f"{category}_{tab_idx}_{kpi_idx}_{hash(kpi)}"
             
@@ -278,6 +325,7 @@ class KPIsPage:
             
             col1, col2 = st.columns([0.7, 0.3])
             kpi_details = self.data_manager.get_kpi_details(kpi)
+            
             if kpi_details["specification"] in self.kpi_specs.keys():
                 with col1:
                     st.markdown(f"**{kpi}**")
@@ -292,10 +340,44 @@ class KPIsPage:
                             st.session_state.current_kpi = kpi
                             st.rerun()
                     else:
-                        # For numerical KPIs
-                        status = st.session_state.kpi_data.get(kpi, "Data incomplete")
-                        st.markdown(f"**Status:** {status}")
-                
+                        # Check for KPI calculation data
+                        kpi_file = f"session_files/{kpi_details['specification']}_cal_data.csv"
+                        
+                        if os.path.exists(kpi_file):
+                            try:
+                                df = pd.read_csv(kpi_file)
+                                
+                                # Attempt to calculate KPI
+                                result, error = kpi_calculator.calculate_kpi(
+                                    kpi_details['specification'], 
+                                    df
+                                )
+                                
+                                if result is not None:
+                                    st.session_state.kpi_data[kpi] = {
+                                        'value': result, 
+                                        'status': 'Calculated'
+                                    }
+                                    st.markdown(f"**Status:** Calculated")
+                                    st.markdown(f"**Value:** {result:.2f}")
+                                else:
+                                    st.session_state.kpi_data[kpi] = {
+                                        'value': None, 
+                                        'status': 'Calculation Error'
+                                    }
+                                    st.markdown(f"**Status:** Calculation Error")
+                                    st.info(error)
+                            
+                            except Exception as e:
+                                st.session_state.kpi_data[kpi] = {
+                                    'value': None, 
+                                    'status': 'Data Processing Error'
+                                }
+                                st.markdown(f"**Status:** Data Processing Error")
+                                st.error(str(e))
+                        else:
+                            st.markdown(f"**Status:** Data incomplete")
+                    
                 st.markdown("</div>", unsafe_allow_html=True)
 
     def _render_text_input_modal(self):
