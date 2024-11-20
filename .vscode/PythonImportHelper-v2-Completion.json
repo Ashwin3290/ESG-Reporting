@@ -94,6 +94,23 @@
         "documentation": {}
     },
     {
+        "label": "uuid",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "uuid",
+        "description": "uuid",
+        "detail": "uuid",
+        "documentation": {}
+    },
+    {
+        "label": "KPICalculator",
+        "importPath": "utils.kpi_calculator",
+        "description": "utils.kpi_calculator",
+        "isExtraImport": true,
+        "detail": "utils.kpi_calculator",
+        "documentation": {}
+    },
+    {
         "label": "Dict",
         "importPath": "typing",
         "description": "typing",
@@ -244,7 +261,7 @@
         "kind": 6,
         "importPath": "page.sector_kpis",
         "description": "page.sector_kpis",
-        "peekOfCode": "class KPIsPage:\n    def __init__(self):\n        self.data_manager = DataManager()\n        if \"modal_state\" not in st.session_state:\n            st.session_state.modal_state = False\n        if \"current_kpi\" not in st.session_state:\n            st.session_state.current_kpi = None\n        if \"kpi_data\" not in st.session_state:\n            st.session_state.kpi_data = {}\n        if \"uploaded_files\" not in st.session_state:",
+        "peekOfCode": "class KPIsPage:\n    def __init__(self):\n        self.data_manager = DataManager()\n        self.kpi_calculator = KPICalculator()\n        self._initialize_session_state()\n        self._setup_directory()\n        self._load_kpi_specs()\n    def _initialize_session_state(self):\n        \"\"\"Initialize all session state variables\"\"\"\n        session_vars = {",
         "detail": "page.sector_kpis",
         "documentation": {}
     },
@@ -255,6 +272,24 @@
         "description": "utils.data_manager",
         "peekOfCode": "class DataManager:\n    def __init__(self):\n        # Load CSV data\n        self.df = pd.read_csv('data\\kpi_data.csv')\n        # Clean up any null values in KPI Name\n        self.df['KPI Name'] = self.df['KPI Name'].fillna('')\n        # Map cluster numbers to ESG categories\n        self.cluster_to_category = {\n            0: 'Environmental',\n            1: 'Social',",
         "detail": "utils.data_manager",
+        "documentation": {}
+    },
+    {
+        "label": "KPICalculator",
+        "kind": 6,
+        "importPath": "utils.kpi_calculator",
+        "description": "utils.kpi_calculator",
+        "peekOfCode": "class KPICalculator:\n    def __init__(self, kpi_specs_path='data/kpis.json'):\n        with open(kpi_specs_path, 'r') as f:\n            self.kpi_specs = json.load(f)\n        self.kpi_calculations = kpi_calculations = {\n    \"Energy consumption, total\": \"total_energy_consumption + energy_by_source\",\n    \"GHG emissions, total (scope I,II)\": \"scope_1_emissions + scope_2_emissions\",\n    \"Percentage of FTE leaving p.a./total FTE\": \"(fte_leaving / total_fte_start) * 100\",\n    \"Average expenses on training per FTE p.a\": \"total_training_expenses / total_fte\",\n    \"Age structure/distribution (number of FTEs per age group, 10-year intervals)\": \"age_distribution\",",
+        "detail": "utils.kpi_calculator",
+        "documentation": {}
+    },
+    {
+        "label": "kpi_calculator",
+        "kind": 5,
+        "importPath": "utils.kpi_calculator",
+        "description": "utils.kpi_calculator",
+        "peekOfCode": "kpi_calculator = KPICalculator()",
+        "detail": "utils.kpi_calculator",
         "documentation": {}
     },
     {

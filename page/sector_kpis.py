@@ -3,13 +3,14 @@ import pandas as pd
 import os
 import json
 from streamlit_modal import Modal
+import uuid
 from utils.data_manager import DataManager
 from utils.kpi_calculator import KPICalculator
 
 class KPIsPage:
     def __init__(self):
         self.data_manager = DataManager()
-        self.kpi_calculator = KPICalculator
+        self.kpi_calculator = KPICalculator()
         self._initialize_session_state()
         self._setup_directory()
         self._load_kpi_specs()
@@ -276,13 +277,13 @@ class KPIsPage:
                             
                             # Create selectbox for column mapping
                             index = (available_columns.index(current_mapping) + 1 
-                                if current_mapping in available_columns else 0)
-                            
+                            if current_mapping in available_columns else 0)
+
                             selected_column = st.selectbox(
-                                f"{col_info['description']} ({col_info['name']})",
-                                options=['-- Select Column --'] + available_columns,
-                                index=index,
-                                key=f"mapping_{mapping_key}"
+                            f"{col_info['description']} ({col_info['name']})",
+                            options=['-- Select Column --'] + available_columns,
+                            index=index,
+                            key=f"mapping_{mapping_key}_{uuid.uuid4()}"
                             )
                             
                             if selected_column != '-- Select Column --':
@@ -346,9 +347,9 @@ class KPIsPage:
                         if os.path.exists(kpi_file):
                             try:
                                 df = pd.read_csv(kpi_file)
-                                
+                                print(df.head())
                                 # Attempt to calculate KPI
-                                result, error = kpi_calculator.calculate_kpi(
+                                result, error = self.kpi_calculator.calculate_kpi(
                                     kpi_details['specification'], 
                                     df
                                 )

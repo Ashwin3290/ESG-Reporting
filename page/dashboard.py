@@ -43,12 +43,17 @@ class DashboardPage:
 
     def _organize_kpi_data(self, kpi_data, categorized_kpis):
         """Organize KPI data by ESG category"""
+        print(categorized_kpis,kpi_data)
         categorized_data = {}
         for category in self.categories:
-            category_kpis = categorized_kpis.get(category, [])
-            category_data = {kpi: kpi_data[kpi] for kpi in category_kpis if kpi in kpi_data}
-            if category_data:
-                categorized_data[category] = category_data
+            if category in kpi_data:
+                # Extract just the values from the nested dictionary
+                category_data = {
+                    kpi_name: kpi_info['value'] 
+                    for kpi_name, kpi_info in kpi_data[category].items()
+                }
+                if category_data:
+                    categorized_data[category] = category_data
         return categorized_data
 
     def _render_header(self, sector):
@@ -69,12 +74,13 @@ class DashboardPage:
             )
 
     def _render_overview_cards(self, categorized_data):
+        print(categorized_data)
         # Calculate category scores
         scores = {
             category: sum(data.values()) / len(data) if data else 0
             for category, data in categorized_data.items()
         }
-        
+        print(scores)
         overall_score = sum(scores.values()) / len([s for s in scores.values() if s > 0])
         
         col1, col2, col3 = st.columns(3)
