@@ -68,6 +68,55 @@
         "documentation": {}
     },
     {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Any",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Optional",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
         "label": "os",
         "kind": 6,
         "isExtraImport": true,
@@ -111,30 +160,6 @@
         "documentation": {}
     },
     {
-        "label": "Dict",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
-        "label": "List",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
-        "label": "Optional",
-        "importPath": "typing",
-        "description": "typing",
-        "isExtraImport": true,
-        "detail": "typing",
-        "documentation": {}
-    },
-    {
         "label": "annotations",
         "importPath": "__future__",
         "description": "__future__",
@@ -158,15 +183,6 @@
         "importPath": "sys",
         "description": "sys",
         "detail": "sys",
-        "documentation": {}
-    },
-    {
-        "label": "numpy",
-        "kind": 6,
-        "isExtraImport": true,
-        "importPath": "numpy",
-        "description": "numpy",
-        "detail": "numpy",
         "documentation": {}
     },
     {
@@ -207,7 +223,7 @@
         "kind": 5,
         "importPath": "config.constants",
         "description": "config.constants",
-        "peekOfCode": "COLORS = {\n    \"primary\": \"#6B46C1\",  # Purple from the design\n    \"background\": \"#F3F4F6\",\n    \"text\": \"#1F2937\",\n    \"border\": \"#E5E7EB\",\n}\n# CSS for custom styling\nCUSTOM_CSS = \"\"\"\n<style>\n    .stApp {",
+        "peekOfCode": "COLORS = {\n    \"primary\": \"#6B46C1\",\n    \"background\": \"#F3F4F6\",\n    \"text\": \"#1F2937\",\n    \"border\": \"#E5E7EB\",\n}\nCUSTOM_CSS = \"\"\"\n<style>\n    .stApp {\n        background-color: #F3F4F6;",
         "detail": "config.constants",
         "documentation": {}
     },
@@ -217,24 +233,6 @@
         "importPath": "config.constants",
         "description": "config.constants",
         "peekOfCode": "CUSTOM_CSS = \"\"\"\n<style>\n    .stApp {\n        background-color: #F3F4F6;\n    }\n    .sector-card {\n        background-color: white;\n        padding: 1.5rem;\n        border-radius: 0.5rem;\n        border: 1px solid #E5E7EB;",
-        "detail": "config.constants",
-        "documentation": {}
-    },
-    {
-        "label": "SECTORS",
-        "kind": 5,
-        "importPath": "config.constants",
-        "description": "config.constants",
-        "peekOfCode": "SECTORS = {\n    \"Technology\": {\n        \"mandatory_kpis\": [\n            \"Carbon Emissions (tCO2e)\",\n            \"Energy Consumption (MWh)\",\n            \"Data Privacy Incidents\",\n            \"Cybersecurity Breaches\",\n        ],\n        \"optional_kpis\": [\n            \"Water Usage (m³)\",",
-        "detail": "config.constants",
-        "documentation": {}
-    },
-    {
-        "label": "SAMPLE_KPI_STRUCTURE",
-        "kind": 5,
-        "importPath": "config.constants",
-        "description": "config.constants",
-        "peekOfCode": "SAMPLE_KPI_STRUCTURE = {\n    \"KPI_Name\": [],\n    \"Value\": [],\n    \"Unit\": [],\n    \"Year\": [],\n    \"Quarter\": [],\n}",
         "detail": "config.constants",
         "documentation": {}
     },
@@ -387,7 +385,7 @@
         "kind": 2,
         "importPath": "main",
         "description": "main",
-        "peekOfCode": "def main():\n    # Initialize session state\n    if \"current_page\" not in st.session_state:\n        st.session_state.current_page = \"home\"\n    # Page routing\n    if st.session_state.current_page == \"home\":\n        HomePage().render()\n    elif st.session_state.current_page == \"sector_kpis\":\n        KPIsPage().render()\n    elif st.session_state.current_page == \"dashboard\":",
+        "peekOfCode": "def main():\n    if \"current_page\" not in st.session_state:\n        st.session_state.current_page = \"home\"\n    # Page routing\n    if st.session_state.current_page == \"home\":\n        HomePage().render()\n    elif st.session_state.current_page == \"sector_kpis\":\n        KPIsPage().render()\n    elif st.session_state.current_page == \"dashboard\":\n        DashboardPage().render()",
         "detail": "main",
         "documentation": {}
     }

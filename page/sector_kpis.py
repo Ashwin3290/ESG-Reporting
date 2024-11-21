@@ -347,8 +347,6 @@ class KPIsPage:
                         if os.path.exists(kpi_file):
                             try:
                                 df = pd.read_csv(kpi_file)
-                                print(df.head())
-                                # Attempt to calculate KPI
                                 result, error = self.kpi_calculator.calculate_kpi(
                                     kpi_details['specification'], 
                                     df

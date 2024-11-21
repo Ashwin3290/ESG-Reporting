@@ -1,3 +1,5 @@
 test.py
 */__pycache__
-.vscode
+./vscode
+./session_files/*
+./vscode/*

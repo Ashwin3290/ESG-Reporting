@@ -2,13 +2,12 @@ import pandas as pd
 
 # Custom color scheme
 COLORS = {
-    "primary": "#6B46C1",  # Purple from the design
+    "primary": "#6B46C1",
     "background": "#F3F4F6",
     "text": "#1F2937",
     "border": "#E5E7EB",
 }
 
-# CSS for custom styling
 CUSTOM_CSS = """
 <style>
     .stApp {
@@ -43,58 +42,3 @@ CUSTOM_CSS = """
     }
 </style>
 """
-
-# Hardcoded sectors and their KPIs
-SECTORS = {
-    "Technology": {
-        "mandatory_kpis": [
-            "Carbon Emissions (tCO2e)",
-            "Energy Consumption (MWh)",
-            "Data Privacy Incidents",
-            "Cybersecurity Breaches",
-        ],
-        "optional_kpis": [
-            "Water Usage (m³)",
-            "Renewable Energy (%)",
-            "Employee Training Hours",
-            "Diversity Ratio (%)",
-        ]
-    },
-    "Manufacturing": {
-        "mandatory_kpis": [
-            "Waste Production (tons)",
-            "Worker Safety Incidents",
-            "Raw Material Usage (tons)",
-            "Energy Intensity",
-        ],
-        "optional_kpis": [
-            "Supplier Assessment Score",
-            "Community Investment ($)",
-            "Product Recycling Rate (%)",
-            "Water Intensity",
-        ]
-    },
-    "Finance": {
-        "mandatory_kpis": [
-            "Green Investment Ratio (%)",
-            "Financial Inclusion Score",
-            "Governance Incidents",
-            "Risk Assessment Coverage",
-        ],
-        "optional_kpis": [
-            "Paper Usage (tons)",
-            "Employee Diversity (%)",
-            "Sustainable Products (%)",
-            "Community Loans ($)",
-        ]
-    }
-}
-
-# Sample KPI data structure
-SAMPLE_KPI_STRUCTURE = {
-    "KPI_Name": [],
-    "Value": [],
-    "Unit": [],
-    "Year": [],
-    "Quarter": [],
-}

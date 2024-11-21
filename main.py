@@ -4,7 +4,6 @@ from page.sector_kpis import KPIsPage
 from page.dashboard import DashboardPage
 
 def main():
-    # Initialize session state
     if "current_page" not in st.session_state:
         st.session_state.current_page = "home"
 
