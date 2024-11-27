@@ -14,6 +14,7 @@ class DashboardPage:
         self.categories = ['Environmental', 'Social', 'Governance']
 
     def render(self):
+
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         
         if "selected_industry" not in st.session_state or "kpi_data" not in st.session_state:
@@ -54,6 +55,39 @@ class DashboardPage:
             """,
             unsafe_allow_html=True
         )
+        
+        st.markdown("""
+            <style>
+            /* Subtle styling for selectbox */
+            .stSelectbox {
+                margin-bottom: 1rem;
+            }
+            
+            .stSelectbox > div > div {
+                background-color: #f8fafc;  /* Very light blue-gray */
+                border: 1px solid #e2e8f0;  /* Light gray border */
+                border-radius: 6px;
+                padding: 2px 8px;
+            }
+            
+            .stSelectbox > div > div:hover {
+                border-color: #cbd5e1;  /* Slightly darker on hover */
+            }
+            
+            /* Style for the dropdown options */
+            .stSelectbox > div > div > div {
+                color: #334155;  /* Dark gray text */
+                font-size: 0.95rem;
+            }
+            
+            /* Arrow icon color */
+            .stSelectbox > div > div > div[data-baseweb="select"] > div {
+                color: #64748b;  /* Medium gray for the arrow */
+            }
+            </style>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         self._render_kpi_eda()
     def _organize_kpi_data(self, kpi_data, categorized_kpis):
         """Organize KPI data by ESG category"""
@@ -134,7 +168,6 @@ class DashboardPage:
 
     def _render_kpi_comparison_chart(self, kpi_data, category):
         st.markdown(f"### {category} KPI Performance")
-        print(kpi_data)
         fig = go.Figure()
         
         fig.add_trace(go.Bar(

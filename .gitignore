@@ -1,6 +1,6 @@
 test.py
 test.json
-*/__pycache__
+**/__pycache__
 session_files/*
 !session_files/.gitkeep
 .vscode/
