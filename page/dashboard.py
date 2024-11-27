@@ -56,14 +56,16 @@ class DashboardPage:
         )
         self._render_kpi_eda()
     def _organize_kpi_data(self, kpi_data, categorized_kpis):
-        print(categorized_kpis)
         """Organize KPI data by ESG category"""
         categorized_data = {}
         for category in categorized_kpis.keys():
             categorized_data[category]={}
             for kpi in categorized_kpis[category]:
                 if kpi in kpi_data:
-                    categorized_data[category][kpi]=kpi_data[kpi]["value"]
+                    if isinstance(kpi_data[kpi], dict):
+                        categorized_data[category][kpi] = kpi_data[kpi]["value"]
+                    else:
+                        categorized_data[category][kpi] = kpi_data[kpi]
         return categorized_data
 
     def _render_header(self, sector):
