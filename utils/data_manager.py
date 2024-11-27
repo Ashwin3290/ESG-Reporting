@@ -36,14 +36,15 @@ class DataManager:
         for _, row in industry_data.iterrows():
             category = self.cluster_to_category.get(row['Cluster'])
             if category:
-                categorized_kpis[category].append(row['KPI Name'])
+                categorized_kpis[category].append(row['Specification'])
                 
         return categorized_kpis
     
     def get_kpi_details(self, kpi_name: str) -> Dict:
         """Get details for a specific KPI"""
-        kpi_data = self.df[self.df['KPI Name'] == kpi_name].iloc[0]
+        kpi_data = self.df[self.df['Specification'] == kpi_name].iloc[0]
         return {
+            'kpi_name': kpi_data['KPI Name'],
             'specification_id': kpi_data['Specification ID'],
             'scope': kpi_data['Scope'],
             'specification': kpi_data['Specification'],

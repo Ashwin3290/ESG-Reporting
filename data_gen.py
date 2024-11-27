@@ -1,168 +1,201 @@
 import pandas as pd
 import numpy as np
 import json
-import random
-import os
+import sympy as sp
+import re
 
-class UnifiedKPISampleDataGenerator:
-    def __init__(self, kpi_specs_path='data/kpis.json'):
+class EquationDecompositionKPIDataGenerator:
+    def __init__(self, 
+                kpi_specs_path='data/kpis.json', 
+                kpi_reference_path='data/kpi_reference.json'):
         """
-        Initialize the sample data generator with KPI specifications
+        Initialize the KPI data generator with equation decomposition
         
         :param kpi_specs_path: Path to the JSON file containing KPI specifications
+        :param kpi_reference_path: Path to the JSON file containing KPI reference values
         """
         # Load KPI specifications
         with open(kpi_specs_path, 'r') as f:
             self.kpi_specs = json.load(f)
+        
+        # Load KPI reference values
+        with open(kpi_reference_path, 'r') as f:
+            self.kpi_reference = json.load(f)
+        
+        # Mapping of KPI calculations with symbolic decomposition
+        self.kpi_calculations = {
+            # Environmental KPIs
+            "Energy consumption, total": "total_energy_consumption + energy_by_source",
+            "GHG emissions, total (scope I,II)": "scope_1_emissions + scope_2_emissions",
+            "Total CO₂,NOx, SOx, VOC emissions in million tonnes": "co2_emissions + nox_emissions + sox_emissions + voc_emissions",
+            "Improvement rate of product energy efficiency compared to previous year": 
+                "((current_energy_efficiency - previous_energy_efficiency) / previous_energy_efficiency) * 100",
+            "Water consumption in m³": "total_water_consumption + water_by_source",
+            "Total waste in tonnes": "scope_1_waste",
+            "Percentage of total waste which is recycled": "(recycled_waste / total_waste) * 100",
+            "Hazardous waste total in tonnes total": "hazardous_waste",
+
+            # Workforce and HR KPIs
+            "Percentage of FTE leaving p.a./total FTE": "(fte_leaving / total_fte_start) * 100",
+            "Average expenses on training per FTE p.a": "total_training_expenses / total_fte",
+            "Age structure/distribution (number of FTEs per age group, 10-year intervals)": "age_distribution",
+            "Total number of fatalities in relation to FTEs": "fatalities / total_fte",
+
+            # Financial and Business KPIs
+            "Total amount of bonuses, incentives and stock options paid out in €,$": 
+                "innovation_bonuses + innovation_incentives",
+            "Expenses and fines on anti-competitive behavior": "legal_expenses + fines_paid",
+            "Percentage of revenues in regions with low corruption index": 
+                "(revenue_by_region / total_revenue) * 100",
+            "Percentage of new products introduced in last 12 months": 
+                "(new_product_revenue / total_revenue) * 100",
+            "CapEx allocation to ESG investments": "(esg_investments / total_capex) * 100",
+            "Share of market by product/segment": "(product_revenue / total_market_revenue) * 100",
+            "Capacity utilisation of facilities": "(actual_capacity_used / total_capacity) * 100",
+
+            # Compliance and Political KPIs
+            "Contributions to political parties as percentage of revenue": 
+                "(political_contributions / total_revenue) * 100",
+            "Customer satisfaction percentage": "(customers_surveyed / total_customers) * 100"
+        }
+    
+    def _extract_variables(self, formula):
+        """
+        Extract unique variables from a formula string
+        
+        :param formula: Formula string
+        :return: List of unique variables
+        """
+        # Remove any operators and numbers
+        variables = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', formula)
+        return list(set(variables))
+    
+    def _calculate_kpi_range(self, kpi_name):
+        """
+        Calculate the target range for a KPI between 60-75% of the total range
+        
+        :param kpi_name: Name of the KPI
+        :return: Tuple of (best_score, worst_score, target_min, target_max)
+        """
+        ref = self.kpi_reference.get(kpi_name, {})
+        best_score = ref.get('best_score', 0)
+        worst_score = ref.get('worst_score', 100)
+        
+        total_range = abs(worst_score - best_score)
+        
+        # Calculate 60-75% point of the range
+        range_min = best_score + (0.6 * total_range)
+        range_max = best_score + (0.75 * total_range)
+        
+        return best_score, worst_score, range_min, range_max
     
     def generate_sample_data(self, num_rows=100):
         """
-        Generate a unified sample dataset for specific KPIs
+        Generate a unified sample dataset for KPIs
         
         :param num_rows: Number of rows to generate
-        :return: Unified DataFrame with KPI data
+        :return: Tuple of (DataFrame, column information)
         """
-        # Specific KPIs to generate
-        example_kpis = [
-            'Energy consumption, total',
-            'GHG emissions, total (scope I,II)',
-            'Total CO²,NOx, SOx, VOC emissions in million tonnes',
-            'Improvement rate of product energy efficiency compared to previous year',
-            'Water consumption in m³',
-            'CapEx allocation to investments on ESG relevant aspects of business as definedby the company (refered to Introduction 1.8.1. KPIs & Definitions)',
-            'Total number of fatalities in relation to FTEsS04-04 II Total number of injuries in relation to FTEs',
-            'Total number of suppliersV28-02 II Percentage of sourcing from 3 biggest external suppliersV28-03 II Turnover of suppliers in percent',
-            'Percentage of FTE leaving p.a./total FTE',
-            'Average expenses on training per FTE p.a',
-            'Age structure/distribution (number of FTEs per age group, 10-year intervals)',
-            'Total amount of bonuses, incentives and stock options paid out in â‚¬,$',
-            'Expenses and fines on filings, law suits related to anti-competitivebehavior, anti-trust and monopoly practices',
-            'Percentage of revenues in regions with Transparency International corruptionindex below 6.0',
-            'Percentage of new products or modified products introduced lessproducts than 12 months ago',
-            'Total waste in tonnes',
-            'Percentage of total waste which is recycled',
-            'Contributions to political parties as a percentage of total revenuespolitical parties',
-            'Total cost of relocation in monetary terms i.e. currency incl. Indemnity, pay-off,relocation of jobs outplacement, hiring, training, consulting',
-            'Percentage of total customers surveyed comprising satisfied customers',
-            'Capacity utilisation as a percentage of total available facilities',
-            'Hazardous waste total in tonnes total',
-            'Share of market by product, product line, segment, region or total'
-        ]
-
-        # Collect all columns to be generated
-        all_columns = []
-
-        # Iterate through specified KPIs
-        for kpi_name in example_kpis:
-            # Check if KPI exists in specifications
-            if kpi_name not in self.kpi_specs:
-                print(f"Warning: KPI '{kpi_name}' not found in specifications")
-                continue
-
-            kpi_spec = self.kpi_specs[kpi_name]
-            
-            # Skip non-numerical KPIs
-            if not kpi_spec.get('is_numerical', True):
-                continue
-            
-            # Get required data columns
-            required_data = kpi_spec.get('required_data', [])
-            
-            # Add columns with a prefix to ensure unique column names
-            for data_item in required_data:
-                column_name = f"{data_item['name']}"
-                all_columns.append({
-                    'column_name': column_name,
-                    'original_name': data_item['name'],
-                    'kpi': kpi_name,
-                    'type': 'float',
-                    'mean': random.randint(10,30),
-                    'std': random.randint(10,30),
-                })
+        # Collect all unique variables across KPIs
+        all_variables = set()
+        for formula in self.kpi_calculations.values():
+            all_variables.update(self._extract_variables(formula))
         
-        # Generate data
+        # Collect data and column information
         data = {}
-        for col in all_columns:
-            # Generate sample data based on type
-            if col['type'] == 'float':
-                data[col['column_name']] = np.random.normal(col['mean'], col['std'], num_rows)
+        column_info = []
+        
+        # Generate data for each unique variable
+        for var_name in all_variables:
+            # Skip empty or problematic variable names
+            if not var_name or var_name in ['x', 'y']:
+                continue
             
-            elif col['type'] == 'int':
-                data[col['column_name']] = np.random.randint(col['min'], col['max'], num_rows)
+            # Try to find reference data or use default range
+            best_score, worst_score, target_min, target_max = self._calculate_kpi_range(var_name)
             
-            elif col['type'] == 'percentage':
-                data[col['column_name']] = np.random.uniform(0, 100, num_rows)
+            # Ensure we have reasonable min and max
+            if target_min == target_max:
+                target_min, target_max = 0, 100
             
-            elif col['type'] == 'boolean':
-                data[col['column_name']] = np.random.choice([True, False], num_rows)
+            # Generate column data using normal distribution
+            col_data = np.random.normal(
+                loc=(target_min + target_max) / 2, 
+                scale=(target_max - target_min) / 6, 
+                size=num_rows
+            )
+            
+            # Ensure non-negative and within range
+            col_data = np.clip(col_data, target_min, target_max)
+            
+            # Store column data
+            data[var_name] = col_data
+            
+            # Store column information
+            column_info.append({
+                'column_name': var_name,
+                'range': {
+                    'min': target_min,
+                    'max': target_max,
+                    'mean': (target_min + target_max) / 2,
+                    'std': (target_max - target_min) / 6
+                }
+            })
         
         # Create DataFrame
         sample_df = pd.DataFrame(data)
         
-        # Apply data transformations and cleaning
-        sample_df = self._apply_data_transformations(sample_df)
-        
-        return sample_df, all_columns
+        return sample_df, column_info
     
-    def _apply_data_transformations(self, df):
+    def preview_sample_data(self, df):
         """
-        Apply optional data transformations
-        
-        :param df: Input DataFrame
-        :return: Transformed DataFrame
-        """
-        # Ensure no negative values
-        df = df.clip(lower=0)
-        
-        return df
+        Preview generated sample dataset and validate KPI calculations
     
-    def save_sample_dataset(self, df, output_path='kpi_data.csv'):
-        """
-        Save the unified sample dataset to a CSV file
-        
-        :param df: DataFrame to save
-        :param output_path: Path to save the CSV file
-        """
-        # Ensure directory exists
-        
-        # Save to CSV
-        df.to_csv(output_path, index=False)
-        print(f"Sample dataset saved to {output_path}")
-    
-    def preview_sample_data(self, df, columns_info):
-        """
-        Preview generated sample dataset
-        
         :param df: DataFrame to preview
-        :param columns_info: List of column information
         """
-        # Print overall dataset info
+        # Validate KPI calculations for each KPI type
+        print("\nKPI Calculations Validation:")
+        for kpi_name, formula in self.kpi_calculations.items():
+            try:
+                # Calculate KPI using the provided formula
+                kpi_values = df.eval(formula)
+                
+                # Get KPI range information
+                best_score, worst_score, target_min, target_max = self._calculate_kpi_range(kpi_name)
+                
+                mean_kpi = kpi_values.mean()
+                std_kpi = kpi_values.std()
+                
+                print(f"\nKPI: {kpi_name}")
+                print(f"Formula: {formula}")
+                print(f"Target Range: {target_min:.2f} - {target_max:.2f}")
+                print(f"Actual Mean KPI: {mean_kpi:.2f}")
+                print(f"Actual KPI Std Dev: {std_kpi:.2f}")
+            except Exception as e:
+                print(f"Error calculating {kpi_name}: {e}")
+        
+        # Print dataset overview
         print("\nDataset Overview:")
         print(f"Total Rows: {len(df)}")
         print(f"Total Columns: {len(df.columns)}")
-        
-        # Print column details
-        print("\nColumn Mapping:")
-        for col_info in columns_info:
-            print(f"- {col_info['column_name']} (KPI: {col_info['kpi']}, Original Name: {col_info['original_name']})")
-        
+    
         # Print first few rows and basic statistics
         print("\nFirst 5 Rows:")
         print(df.head())
-        
+    
         print("\nDataset Description:")
         print(df.describe())
+        
+        # Save to CSV
+        df.to_csv("sample.csv", index=False)
 
 # Example usage
 if __name__ == "__main__":
     # Create an instance of the generator
-    generator = UnifiedKPISampleDataGenerator()
+    generator = EquationDecompositionKPIDataGenerator()
     
     # Generate sample data
     sample_df, columns_info = generator.generate_sample_data(num_rows=50)
     
     # Preview the dataset
-    generator.preview_sample_data(sample_df, columns_info)
-    
-    # Save the dataset
-    generator.save_sample_dataset(sample_df)
+    generator.preview_sample_data(sample_df)

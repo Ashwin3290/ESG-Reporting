@@ -4,8 +4,9 @@ import plotly.express as px
 from utils.data_manager import DataManager
 from config.constants import CUSTOM_CSS
 import pandas as pd
-from typing import Dict, Any
+from typing import Dict, Any, List
 import numpy as np
+from scipy.stats import gaussian_kde
 
 class DashboardPage:
     def __init__(self):
@@ -53,16 +54,16 @@ class DashboardPage:
             """,
             unsafe_allow_html=True
         )
-        self._render_eda_section(categorized_data)
+        self._render_kpi_eda()
     def _organize_kpi_data(self, kpi_data, categorized_kpis):
+        print(categorized_kpis)
         """Organize KPI data by ESG category"""
         categorized_data = {}
         for category in categorized_kpis.keys():
+            categorized_data[category]={}
             for kpi in categorized_kpis[category]:
                 if kpi in kpi_data:
-                    category_data = {kpi:kpi_data[kpi]["value"]}
-                    if category_data:
-                        categorized_data[category] = category_data
+                    categorized_data[category][kpi]=kpi_data[kpi]["value"]
         return categorized_data
 
     def _render_header(self, sector):
@@ -83,10 +84,11 @@ class DashboardPage:
             )
 
     def _render_overview_cards(self, categorized_data):
-        scores = {
-            category: sum(data.values()) / len(data) if data else 0
-            for category, data in categorized_data.items()
-        }
+        
+        scores = {}
+        for category, data in categorized_data.items():
+            if len(data):
+                scores[category] = sum(data.values()) / len(data)
         overall_score = sum(scores.values()) / len([s for s in scores.values() if s > 0])
         
         col1, col2, col3 = st.columns(3)
@@ -120,7 +122,6 @@ class DashboardPage:
 
     def _render_category_tab(self, category, category_data):
         col1, col2 = st.columns([0.6, 0.4])
-        
         with col1:
             self._render_kpi_comparison_chart(category_data, category)
         
@@ -131,7 +132,7 @@ class DashboardPage:
 
     def _render_kpi_comparison_chart(self, kpi_data, category):
         st.markdown(f"### {category} KPI Performance")
-        
+        print(kpi_data)
         fig = go.Figure()
         
         fig.add_trace(go.Bar(
@@ -168,12 +169,15 @@ class DashboardPage:
         
         # Create metrics for radar chart
         metrics = ['Average', 'Maximum', 'Minimum', 'Median']
-        values = [
-            sum(kpi_data.values()) / len(kpi_data),
-            max(kpi_data.values()),
-            min(kpi_data.values()),
-            sorted(kpi_data.values())[len(kpi_data)//2]
-        ]
+        if len(kpi_data):
+            values = [
+                sum(kpi_data.values()) / len(kpi_data),
+                max(kpi_data.values()),
+                min(kpi_data.values()),
+                sorted(kpi_data.values())[len(kpi_data)//2]
+            ]
+        else:
+            values=[0,0,0,0]
         
         fig = go.Figure()
         
@@ -257,123 +261,179 @@ class DashboardPage:
             """,
             unsafe_allow_html=True
         )
-    
-    def _render_eda_section(self, categorized_data: Dict[str, Dict[str, Any]]):
-        """Render the EDA section with various analyses and visualizations"""
-        # Convert data to a more analysis-friendly format
-        df = self._prepare_eda_dataframe(categorized_data)
+    def _render_kpi_eda(self):
+        """Render independent KPI data analysis section"""
+        # Get list of KPI files from session_files directory
+        kpi_files = self._get_kpi_files()
         
-        if df.empty:
-            st.info("No numerical data available for analysis")
+        if not kpi_files:
+            st.info("No KPI calculation data available for analysis")
             return
+        
+        # Create KPI selector dropdown
+        selected_kpi = st.selectbox(
+            "Select KPI for detailed analysis",
+            options=kpi_files,
+            format_func=lambda x: x.replace('_', ' ').title()
+        )
+        
+        # Load and analyze selected KPI data
+        kpi_data = self._load_kpi_data(selected_kpi)
+        
+        if kpi_data is None or kpi_data.empty:
+            st.error(f"No data available for {selected_kpi}")
+            return
+        
+        # Render EDA components
+        self._render_kpi_data_summary(kpi_data, selected_kpi)
+        self._render_kpi_distributions(kpi_data, selected_kpi)
+        self._render_kpi_correlations(kpi_data, selected_kpi)
+        self._render_time_patterns(kpi_data, selected_kpi)
 
-        # Statistical Summary
-        self._render_statistical_summary(df)
+    def _get_kpi_files(self) -> List[str]:
+        """Get list of KPI files from session_files directory"""
+        import os
+        session_files_dir = "session_files"
+        if not os.path.exists(session_files_dir):
+            return []
         
-        # Distribution Analysis
-        self._render_distribution_analysis(df)
-        
-       
-        # Time Series Analysis (if time-based data is available)
-        if any('time' in col.lower() or 'date' in col.lower() or 'year' in col.lower() or 'month' in col.lower() for col in df.columns):
-            self._render_time_series_analysis(df)
-        
-        # Category Comparison
-        self._render_category_comparison(categorized_data)
+        return [f.replace('.csv', '') for f in os.listdir(session_files_dir) 
+                if f.endswith('.csv')]
 
-    def _prepare_eda_dataframe(self, categorized_data: Dict[str, Dict[str, Any]]) -> pd.DataFrame:
-        """Prepare a DataFrame for EDA from categorized data"""
-        data_dict = {}
-        categories_dict = {}
-        
-        for category, kpis in categorized_data.items():
-            for kpi_name, value in kpis.items():
-                if isinstance(value, (int, float)):
-                    data_dict[kpi_name] = value
-                    categories_dict[kpi_name] = category
-        
-        df = pd.DataFrame(list(data_dict.items()), columns=['KPI', 'Value'])
-        df['Category'] = df['KPI'].map(categories_dict)
-        return df
+    def _load_kpi_data(self, kpi_name: str) -> pd.DataFrame:
+        """Load KPI data from CSV file"""
+        try:
+            file_path = f"session_files/{kpi_name}.csv"
+            df = pd.read_csv(file_path)
+            return df
+        except Exception as e:
+            st.error(f"Error loading data: {str(e)}")
+            return None
 
-    def _render_statistical_summary(self, df: pd.DataFrame):
-        """Render statistical summary cards"""
-        st.markdown("### Statistical Overview")
+    def _render_kpi_data_summary(self, df: pd.DataFrame, kpi_name: str):
+        """Render summary statistics cards for KPI data"""
+        st.markdown("#### Data Overview")
         
+        # Basic dataset information
         col1, col2, col3, col4 = st.columns(4)
         
         with col1:
             self._metric_card(
-                "Mean Score",
-                f"{df['Value'].mean():.1f}",
-                "Average across all KPIs",
+                "Total Records",
+                f"{len(df)}",
+                "Number of data points",
                 "#6B46C1"
             )
         
         with col2:
+            numeric_cols = df.select_dtypes(include=[np.number]).columns
+            categorical_cols = df.select_dtypes(include=['object']).columns
+            col_info = f"Numeric: {len(numeric_cols)}, Categorical: {len(categorical_cols)}"
             self._metric_card(
-                "Median Score",
-                f"{df['Value'].median():.1f}",
-                "Middle value",
+                "Data Columns",
+                f"{len(df.columns)}",
+                col_info,
                 "#2563EB"
             )
         
-        with col3:
-            self._metric_card(
-                "Standard Deviation",
-                f"{df['Value'].std():.1f}",
-                "Score variation",
-                "#059669"
-            )
-        
-        with col4:
-            self._metric_card(
-                "Score Range",
-                f"{df['Value'].max() - df['Value'].min():.1f}",
-                f"Min: {df['Value'].min():.1f}, Max: {df['Value'].max():.1f}",
-                "#DC2626"
-            )
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) > 0:
+            with col3:
+                avg_completeness = (1 - df[numeric_cols].isnull().mean().mean()) * 100
+                self._metric_card(
+                    "Data Completeness",
+                    f"{avg_completeness:.1f}%",
+                    "Non-null values",
+                    "#059669"
+                )
+            
+            with col4:
+                std_devs = df[numeric_cols].std()
+                highest_std = std_devs.max()
+                highest_std_col = std_devs.idxmax()
+                self._metric_card(
+                    "Highest Variation",
+                    f"{highest_std:.2f}",
+                    f"in {highest_std_col}",
+                    "#DC2626"
+                )
 
-    def _render_distribution_analysis(self, df: pd.DataFrame):
-        """Render distribution analysis visualizations"""
-        st.markdown("### Score Distribution Analysis")
+    def _render_kpi_distributions(self, df: pd.DataFrame, kpi_name: str):
+        """Render distribution visualizations for KPI data"""
+        st.markdown("#### Distribution Analysis")
+        
+        numeric_cols = df.select_dtypes(include=[np.number]).columns
+        if len(numeric_cols) == 0:
+            st.info("No numerical columns available for distribution analysis")
+            return
         
         col1, col2 = st.columns(2)
         
         with col1:
-            # Histogram
-            fig_hist = px.histogram(
-                df,
-                x='Value',
-                nbins=20,
-                title='Score Distribution',
-                color='Category',
-                marginal='box'
+            # Combined violin and box plot
+            fig_violin = go.Figure()
+            
+            for col in numeric_cols:
+                fig_violin.add_trace(go.Violin(
+                    y=df[col],
+                    name=col,
+                    box_visible=True,
+                    meanline_visible=True,
+                    points="outliers"
+                ))
+            
+            fig_violin.update_layout(
+                title="Distribution Overview",
+                height=400,
+                showlegend=True,
+                violingap=0.3
             )
-            fig_hist.update_layout(height=400)
-            st.plotly_chart(fig_hist, use_container_width=True)
+            
+            st.plotly_chart(fig_violin, use_container_width=True)
         
         with col2:
-            # Box plot by category
-            fig_box = px.box(
-                df,
-                x='Category',
-                y='Value',
-                title='Score Distribution by Category',
-                color='Category'
+            # Enhanced histogram
+            selected_col = st.selectbox(
+                "Select column for detailed distribution",
+                options=numeric_cols
             )
-            fig_box.update_layout(height=400)
-            st.plotly_chart(fig_box, use_container_width=True)
+            
+            fig_hist = go.Figure()
+            fig_hist.add_trace(go.Histogram(
+                x=df[selected_col],
+                nbinsx=30,
+                name="Distribution"
+            ))
+            
+            kde = gaussian_kde(df[selected_col].dropna())
+            x_range = np.linspace(df[selected_col].min(), df[selected_col].max(), 100)
+            fig_hist.add_trace(go.Scatter(
+                x=x_range,
+                y=kde(x_range) * len(df[selected_col]) * (df[selected_col].max() - df[selected_col].min()) / 30,
+                name="Density",
+                line=dict(color='red')
+            ))
+            
+            fig_hist.update_layout(
+                title=f"{selected_col} Distribution with Density Curve",
+                height=400,
+                showlegend=True
+            )
+            
+            st.plotly_chart(fig_hist, use_container_width=True)
 
-    def _render_correlation_analysis(self, df: pd.DataFrame):
-        """Render correlation analysis"""
-        st.markdown("### KPI Relationships")
+    def _render_kpi_correlations(self, df: pd.DataFrame, kpi_name: str):
+        """Render correlation analysis for KPI data if multiple numerical columns exist"""
+        numeric_df = df.select_dtypes(include=[np.number])
         
-        # Pivot the data for correlation analysis
-        pivot_df = df.pivot(columns='KPI', values='Value')
-        corr_matrix = pivot_df.corr()
+        if len(numeric_df.columns) < 2:
+            return
         
-        # Heatmap of correlations
+        st.markdown("#### Feature Relationships")
+        
+        # Correlation matrix
+        corr_matrix = numeric_df.corr()
+        
         fig = go.Figure(data=go.Heatmap(
             z=corr_matrix,
             x=corr_matrix.columns,
@@ -383,100 +443,73 @@ class DashboardPage:
         ))
         
         fig.update_layout(
-            title='KPI Correlation Matrix',
-            height=600,
+            title='Feature Correlation Matrix',
+            height=400,
             xaxis_tickangle=-45
         )
         
         st.plotly_chart(fig, use_container_width=True)
+        
+        # Scatter matrix for datasets with 3-6 columns
+        if 2 < len(numeric_df.columns) <= 6:
+            fig_scatter = px.scatter_matrix(
+                numeric_df,
+                dimensions=numeric_df.columns,
+                title="Feature Relationships"
+            )
+            
+            fig_scatter.update_layout(
+                height=600,
+                showlegend=False
+            )
+            
+            st.plotly_chart(fig_scatter, use_container_width=True)
 
-    def _render_time_series_analysis(self, df: pd.DataFrame):
-        """Render time series analysis if temporal data is available"""
-        st.markdown("### Temporal Analysis")
+    def _render_time_patterns(self, df: pd.DataFrame, kpi_name: str):
+        """Render time-based patterns if datetime columns are present"""
+        # Check for datetime columns
+        datetime_cols = df.select_dtypes(include=['datetime64']).columns
+        date_like_cols = [col for col in df.columns if 'date' in col.lower() or 'time' in col.lower()]
         
-        # Create a sample time series visualization
-        # This assumes data has some sort of temporal component
-        fig = go.Figure()
-        
-        for category in df['Category'].unique():
-            category_data = df[df['Category'] == category]
-            fig.add_trace(go.Scatter(
-                x=category_data.index,
-                y=category_data['Value'],
-                name=category,
-                mode='lines+markers'
-            ))
-        
-        fig.update_layout(
-            title='KPI Scores Over Time',
-            xaxis_title='Time Period',
-            yaxis_title='Score',
-            height=400
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-
-    def _render_category_comparison(self, categorized_data: Dict[str, Dict[str, Any]]):
-        """Render category comparison analysis"""
-        st.markdown("### Category Performance Comparison")
-        
-        # Calculate category averages
-        category_averages = {
-            category: np.mean([v for v in kpis.values() if isinstance(v, (int, float))])
-            for category, kpis in categorized_data.items()
-            if any(isinstance(v, (int, float)) for v in kpis.values())
-        }
-        
-        if not category_averages:
+        if len(datetime_cols) == 0 and len(date_like_cols) == 0:
             return
         
-        col1, col2 = st.columns(2)
+        st.markdown("#### Temporal Patterns")
         
-        with col1:
-            # Radar chart of category averages
-            fig_radar = go.Figure()
+        # Convert date-like columns to datetime if needed
+        if len(datetime_cols) == 0 and len(date_like_cols) > 0:
+            for col in date_like_cols:
+                try:
+                    df[col] = pd.to_datetime(df[col])
+                    datetime_cols = datetime_cols.append(col)
+                except:
+                    continue
+        
+        if len(datetime_cols) > 0:
+            # Select time column
+            time_col = datetime_cols[0] if len(datetime_cols) == 1 else st.selectbox(
+                "Select time column",
+                options=datetime_cols
+            )
             
-            fig_radar.add_trace(go.Scatterpolar(
-                r=list(category_averages.values()),
-                theta=list(category_averages.keys()),
-                fill='toself',
-                name='Category Average'
+            # Select value column
+            numeric_cols = df.select_dtypes(include=[np.number]).columns
+            value_col = st.selectbox("Select value to analyze", options=numeric_cols)
+            
+            # Time series plot
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=df[time_col],
+                y=df[value_col],
+                mode='lines+markers',
+                name=value_col
             ))
             
-            fig_radar.update_layout(
-                polar=dict(
-                    radialaxis=dict(
-                        visible=True,
-                        range=[0, 100]
-                    )
-                ),
-                showlegend=True,
-                title='Category Performance Overview',
-                height=400
+            fig.update_layout(
+                title=f"{value_col} Over Time",
+                height=400,
+                xaxis_title=time_col,
+                yaxis_title=value_col
             )
             
-            st.plotly_chart(fig_radar, use_container_width=True)
-        
-        with col2:
-            # Bar chart of KPI counts by category
-            kpi_counts = {
-                category: len(kpis)
-                for category, kpis in categorized_data.items()
-            }
-            
-            fig_bar = go.Figure(data=[
-                go.Bar(
-                    x=list(kpi_counts.keys()),
-                    y=list(kpi_counts.values()),
-                    marker_color=['#6B46C1', '#2563EB', '#059669']
-                )
-            ])
-            
-            fig_bar.update_layout(
-                title='KPIs per Category',
-                xaxis_title='Category',
-                yaxis_title='Number of KPIs',
-                height=400
-            )
-            
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)

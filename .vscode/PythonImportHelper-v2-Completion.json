@@ -84,6 +84,14 @@
         "documentation": {}
     },
     {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
         "label": "Dict",
         "importPath": "typing",
         "description": "typing",
@@ -114,6 +122,14 @@
         "importPath": "numpy",
         "description": "numpy",
         "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "gaussian_kde",
+        "importPath": "scipy.stats",
+        "description": "scipy.stats",
+        "isExtraImport": true,
+        "detail": "scipy.stats",
         "documentation": {}
     },
     {
@@ -186,12 +202,21 @@
         "documentation": {}
     },
     {
-        "label": "random",
+        "label": "sympy",
         "kind": 6,
         "isExtraImport": true,
-        "importPath": "random",
-        "description": "random",
-        "detail": "random",
+        "importPath": "sympy",
+        "description": "sympy",
+        "detail": "sympy",
+        "documentation": {}
+    },
+    {
+        "label": "re",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "re",
+        "description": "re",
+        "detail": "re",
         "documentation": {}
     },
     {
@@ -277,16 +302,7 @@
         "kind": 6,
         "importPath": "utils.kpi_calculator",
         "description": "utils.kpi_calculator",
-        "peekOfCode": "class KPICalculator:\n    def __init__(self, kpi_specs_path='data/kpis.json'):\n        with open(kpi_specs_path, 'r') as f:\n            self.kpi_specs = json.load(f)\n        self.kpi_calculations = kpi_calculations = {\n    \"Energy consumption, total\": \"total_energy_consumption + energy_by_source\",\n    \"GHG emissions, total (scope I,II)\": \"scope_1_emissions + scope_2_emissions\",\n    \"Percentage of FTE leaving p.a./total FTE\": \"(fte_leaving / total_fte_start) * 100\",\n    \"Average expenses on training per FTE p.a\": \"total_training_expenses / total_fte\",\n    \"Age structure/distribution (number of FTEs per age group, 10-year intervals)\": \"age_distribution\",",
-        "detail": "utils.kpi_calculator",
-        "documentation": {}
-    },
-    {
-        "label": "kpi_calculator",
-        "kind": 5,
-        "importPath": "utils.kpi_calculator",
-        "description": "utils.kpi_calculator",
-        "peekOfCode": "kpi_calculator = KPICalculator()",
+        "peekOfCode": "class KPICalculator:\n    def __init__(self, kpi_specs_path=\"data\\kpis.json\"):\n        \"\"\"\n        Initialize KPI Calculator with specifications from JSON\n        Args:\n            kpi_specs_path (str): Path to JSON file with KPI specifications\n        \"\"\"\n        with open(kpi_specs_path, 'r') as f:\n            self.kpi_specs = json.load(f)\n        # Comprehensive KPI calculation logic",
         "detail": "utils.kpi_calculator",
         "documentation": {}
     },
@@ -372,11 +388,11 @@
         "documentation": {}
     },
     {
-        "label": "UnifiedKPISampleDataGenerator",
+        "label": "EquationDecompositionKPIDataGenerator",
         "kind": 6,
         "importPath": "data_gen",
         "description": "data_gen",
-        "peekOfCode": "class UnifiedKPISampleDataGenerator:\n    def __init__(self, kpi_specs_path='data/kpis.json'):\n        \"\"\"\n        Initialize the sample data generator with KPI specifications\n        :param kpi_specs_path: Path to the JSON file containing KPI specifications\n        \"\"\"\n        # Load KPI specifications\n        with open(kpi_specs_path, 'r') as f:\n            self.kpi_specs = json.load(f)\n    def generate_sample_data(self, num_rows=100):",
+        "peekOfCode": "class EquationDecompositionKPIDataGenerator:\n    def __init__(self, \n                kpi_specs_path='data/kpis.json', \n                kpi_reference_path='data/kpi_reference.json'):\n        \"\"\"\n        Initialize the KPI data generator with equation decomposition\n        :param kpi_specs_path: Path to the JSON file containing KPI specifications\n        :param kpi_reference_path: Path to the JSON file containing KPI reference values\n        \"\"\"\n        # Load KPI specifications",
         "detail": "data_gen",
         "documentation": {}
     },
@@ -387,6 +403,24 @@
         "description": "main",
         "peekOfCode": "def main():\n    if \"current_page\" not in st.session_state:\n        st.session_state.current_page = \"home\"\n    # Page routing\n    if st.session_state.current_page == \"home\":\n        HomePage().render()\n    elif st.session_state.current_page == \"sector_kpis\":\n        KPIsPage().render()\n    elif st.session_state.current_page == \"dashboard\":\n        DashboardPage().render()",
         "detail": "main",
+        "documentation": {}
+    },
+    {
+        "label": "data_points",
+        "kind": 5,
+        "importPath": "test",
+        "description": "test",
+        "peekOfCode": "data_points = [\n    \"Energy consumption, total\",\n    \"GHG emissions, total (scope I,II)\",\n    \"Total CO², NOx, SOx, VOC emissions in million tonnes\",\n    \"Improvement rate of product energy efficiency compared to previous year\",\n    \"Water consumption in m³\",\n    \"CapEx allocation to investments on ESG relevant aspects of business as defined by the company (referred to Introduction 1.8.1. KPIs & Definitions)\",\n    \"Total number of fatalities in relation to FTEs\",\n    \"Total number of injuries in relation to FTEs\",\n    \"Total number of suppliers\",",
+        "detail": "test",
+        "documentation": {}
+    },
+    {
+        "label": "kpi_calculations",
+        "kind": 5,
+        "importPath": "test",
+        "description": "test",
+        "peekOfCode": "kpi_calculations = {\n            # Environmental KPIs\n            \"Energy consumption, total\": \"total_energy_consumption + energy_by_source\",\n            \"GHG emissions, total (scope I,II)\": \"scope_1_emissions + scope_2_emissions\",\n            \"Total CO₂,NOx, SOx, VOC emissions in million tonnes\": \"co2_emissions + nox_emissions + sox_emissions + voc_emissions\",\n            \"Improvement rate of product energy efficiency compared to previous year\": \n                \"((current_energy_efficiency - previous_energy_efficiency) / previous_energy_efficiency) * 100\",\n            \"Water consumption in m³\": \"total_water_consumption + water_by_source\",\n            \"Total waste in tonnes\": \"scope_1_waste\",\n            \"Percentage of total waste which is recycled\": \"(recycled_waste / total_waste) * 100\",",
+        "detail": "test",
         "documentation": {}
     }
 ]

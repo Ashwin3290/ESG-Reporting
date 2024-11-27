@@ -209,7 +209,7 @@ class KPIsPage:
             
             if result is not None:
                 st.session_state.calculated_values[kpi_name] = result
-                st.session_state.kpi_data[kpi_name] = result  # Update kpi_data for dashboard
+                st.session_state.kpi_data[kpi_name] = result
                 st.session_state.mapping_status[kpi_name] = "complete"
                 st.success(f"Calculated {kpi_name}: {result:.2f}")
             else:
@@ -256,6 +256,7 @@ class KPIsPage:
                 for kpi in kpis:
                     kpi_details = self.data_manager.get_kpi_details(kpi)
                     kpi_name = kpi_details['specification']
+                    
                     
                     if kpi_name in self.kpi_specs:
                         st.markdown(f"#### {kpi}")
@@ -326,10 +327,10 @@ class KPIsPage:
             
             col1, col2 = st.columns([0.7, 0.3])
             kpi_details = self.data_manager.get_kpi_details(kpi)
-            
             if kpi_details["specification"] in self.kpi_specs.keys():
+                print(kpi_details['specification'])
                 with col1:
-                    st.markdown(f"**{kpi}**")
+                    st.markdown(f"**{kpi_details['kpi_name']}**")
                     st.markdown(f"*Specification:* {kpi_details['specification']}")
                     st.markdown(f"*Scope:* {kpi_details['scope']}")
                 
@@ -385,7 +386,8 @@ class KPIsPage:
             return
 
         kpi = st.session_state.current_kpi
-        st.subheader(f"Input Answer for {kpi}")
+        kpi_details = self.data_manager.get_kpi_details(kpi)
+        st.subheader(f"Input Answer for {kpi_details['kpi_name']}")
         
         value = st.text_area(
             "Enter your response",
