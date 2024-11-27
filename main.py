@@ -2,6 +2,7 @@ import streamlit as st
 from page.home import HomePage
 from page.sector_kpis import KPIsPage
 from page.dashboard import DashboardPage
+from page.advisor import ChatInterface
 
 def main():
     if "current_page" not in st.session_state:
@@ -14,6 +15,8 @@ def main():
         KPIsPage().render()
     elif st.session_state.current_page == "dashboard":
         DashboardPage().render()
+    elif st.session_state.current_page == "chat":
+        ChatInterface().render()
 
 if __name__ == "__main__":
     st.set_page_config(

@@ -8,13 +8,16 @@ from typing import Dict, Any, List
 import numpy as np
 from scipy.stats import gaussian_kde
 
+def custom_response_generator(prompt):
+    return f"Your LLM response to: {prompt}"
+
 class DashboardPage:
     def __init__(self):
         self.data_manager = DataManager()
         self.categories = ['Environmental', 'Social', 'Governance']
 
     def render(self):
-
+        
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         
         if "selected_industry" not in st.session_state or "kpi_data" not in st.session_state:
@@ -89,6 +92,7 @@ class DashboardPage:
         
         st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
         self._render_kpi_eda()
+        
     def _organize_kpi_data(self, kpi_data, categorized_kpis):
         """Organize KPI data by ESG category"""
         categorized_data = {}
@@ -118,6 +122,30 @@ class DashboardPage:
                 """,
                 unsafe_allow_html=True
             )
+        
+        with col3:
+            st.markdown("""
+                <style>
+                .advisor-btn {
+                    background-color: #6B46C1;
+                    border: none;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    width: 100%;
+                    transition: background-color 0.2s;
+                }
+                .advisor-btn:hover {
+                    background-color: #553C9A;
+                }
+                </style>
+            """, unsafe_allow_html=True)
+            
+            if st.button("💬", key="advisor_btn", help="Open KPI Advisor"):
+                st.session_state.current_page = "chat"
+                st.rerun()
 
     def _render_overview_cards(self, categorized_data):
         
