@@ -1,6 +1,7 @@
 import pandas as pd
 import json
 import numpy as np
+from utils.text_evaluator import score_esg_narrative
 
 class KPICalculator:
     def __init__(self, kpi_specs_path="data\kpis.json"):
@@ -12,6 +13,8 @@ class KPICalculator:
         """
         with open(kpi_specs_path, 'r') as f:
             self.kpi_specs = json.load(f)
+        with open("data\kpi_reference.json", 'r') as f:
+            self.kpi_reference = json.load(f)
         
         # Comprehensive KPI calculation logic
         self.kpi_calculations = {
@@ -47,10 +50,23 @@ class KPICalculator:
             # Compliance and Political KPIs
             "Contributions to political parties as percentage of revenue": 
                 "(political_contributions / total_revenue) * 100",
-            "Customer satisfaction percentage": "(customers_surveyed / total_customers) * 100"
+            "Customer satisfaction percentage": "(customers_surveyed / total_customers) * 100",
+            "CapEx allocation to investments on ESG relevant aspects": "(esg_investments / total_capex) * 100",
+            "Total number of fatalities in relation to FTEs": "fatalities / total_fte",
+            "Total number of suppliers": "total_suppliers",
+            "Total amount of bonuses, incentives and stock options paid": "innovation_bonuses + innovation_incentives",
+            "Total number of FTEs receiving 90% of bonuses": "innovation_compensation_recipients",
+            "Expenses and fines on anti-competitive behavior": "legal_expenses + fines_paid",
+            "Percentage of revenues in regions with corruption index below 6.0": "(revenue_by_region / total_revenue) * 100",
+            "Percentage of new products introduced less than 12 months ago": "(new_product_revenue / total_revenue) * 100",
+            "Contributions to political parties as percentage of revenue": "(political_contributions / total_revenue) * 100",
+            "Total cost of relocation": "relocation_costs",
+            "Percentage of total customers surveyed comprising satisfied customers": "(customers_surveyed / total_customers) * 100",
+            "Capacity utilisation as percentage of total facilities": "(actual_capacity_used / total_capacity) * 100",
+            "Share of market by product/segment/region": "(product_revenue / total_market_revenue) * 100"
         }
 
-    def calculate_kpi(self, kpi_name, df):
+    def calculate_kpi(self, kpi_name, df,is_numeric=True):
         """
         Calculate KPI based on specifications and provided DataFrame
         
@@ -83,9 +99,42 @@ class KPICalculator:
             
             # Return mean and no error
             return result.mean(), None
-        
+            
         except Exception as e:
             return None, f"Calculation error: {str(e)}"
+
+    def evaluate_answer(self, kpi_name: str, answer: str) -> tuple[float, str | None]:
+        """
+        Evaluate an ESG narrative answer against reference scores.
+        
+        Args:
+            kpi_name (str): The name of the KPI to evaluate
+            answer (str): The ESG narrative answer to evaluate
+            
+        Returns:
+            tuple[float, str | None]: A tuple containing:
+                - float: The calculated score
+                - str | None: Error message if any, None if successful
+                
+        Example:
+            score, error = calculator.evaluate_answer("Energy consumption, total", "Our company reduced...")
+        """
+        try:
+            if not isinstance(kpi_name, str) or not isinstance(answer, str):
+                return 0.0, "Invalid input types. Both kpi_name and answer must be strings"
+                
+            if not kpi_name in self.kpi_reference:
+                return 0.0, f"KPI '{kpi_name}' not found in reference data"
+                
+            reference = self.kpi_reference[kpi_name]
+            best_score = reference['best_score']
+            worst_score = reference['worst_score']
+            
+            score = score_esg_narrative(answer, best_score, worst_score)
+            return score, None
+            
+        except Exception as e:
+            return 0.0, f"Evaluation error: {str(e)}"
 
     def validate_kpi_data(self, df, kpi_name):
         """

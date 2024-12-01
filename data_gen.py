@@ -21,8 +21,6 @@ class EquationDecompositionKPIDataGenerator:
         # Load KPI reference values
         with open(kpi_reference_path, 'r') as f:
             self.kpi_reference = json.load(f)
-        
-        # Mapping of KPI calculations with symbolic decomposition
         self.kpi_calculations = {
             # Environmental KPIs
             "Energy consumption, total": "total_energy_consumption + energy_by_source",
@@ -56,9 +54,22 @@ class EquationDecompositionKPIDataGenerator:
             # Compliance and Political KPIs
             "Contributions to political parties as percentage of revenue": 
                 "(political_contributions / total_revenue) * 100",
-            "Customer satisfaction percentage": "(customers_surveyed / total_customers) * 100"
+            "Customer satisfaction percentage": "(customers_surveyed / total_customers) * 100",
+            "CapEx allocation to investments on ESG relevant aspects": "(esg_investments / total_capex) * 100",
+            "Total number of fatalities in relation to FTEs": "fatalities / total_fte",
+            "Total number of suppliers": "total_suppliers",
+            "Total amount of bonuses, incentives and stock options paid": "innovation_bonuses + innovation_incentives",
+            "Total number of FTEs receiving 90% of bonuses": "innovation_compensation_recipients",
+            "Expenses and fines on anti-competitive behavior": "legal_expenses + fines_paid",
+            "Percentage of revenues in regions with corruption index below 6.0": "(revenue_by_region / total_revenue) * 100",
+            "Percentage of new products introduced less than 12 months ago": "(new_product_revenue / total_revenue) * 100",
+            "Contributions to political parties as percentage of revenue": "(political_contributions / total_revenue) * 100",
+            "Total cost of relocation": "relocation_costs",
+            "Percentage of total customers surveyed comprising satisfied customers": "(customers_surveyed / total_customers) * 100",
+            "Capacity utilisation as percentage of total facilities": "(actual_capacity_used / total_capacity) * 100",
+            "Share of market by product/segment/region": "(product_revenue / total_market_revenue) * 100"
         }
-    
+
     def _extract_variables(self, formula):
         """
         Extract unique variables from a formula string

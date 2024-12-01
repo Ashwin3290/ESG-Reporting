@@ -108,5 +108,19 @@
         "best_score": 35,
         "worst_score": 5,
         "unit": "Percentage"
+    },
+    "Total number of FTEs receiving 90% of bonuses": {
+        "best_score": 20,
+        "worst_score": 80,
+        "unit": "Percentage"
+    },
+    "Total number of FTEs receiving bonuses": {
+        "best_score": 50,
+        "worst_score": 5,
+        "unit": "Percentage of Total FTEs"
+    },
+    "supplier_esg_compliance_narrative": {
+        "best_response": "Our comprehensive supplier management system includes quarterly ESG audits and real-time monitoring through our digital compliance platform. We maintain detailed scorecards for all suppliers, tracking 50+ ESG metrics across environmental impact, labor practices, and governance standards. Our supplier evaluation process includes both announced and unannounced site visits, third-party verification, and continuous performance monitoring. Our procurement team's compensation structure directly ties 30% of their performance bonuses to ESG-related metrics, with a clear premium threshold of up to 15% for suppliers who demonstrate exceptional ESG performance. This is supported by a sophisticated cost-benefit analysis framework that quantifies long-term value creation from sustainable sourcing. We conduct monthly supplier training sessions, maintain a supplier development program, and provide technical assistance for ESG improvements. Our dedicated supplier portal offers real-time performance tracking, automated compliance reporting, and a collaborative platform for sharing best practices. We've implemented blockchain-based traceability for critical supply chain components. We operate a structured supplier development program with clear improvement targets, quarterly reviews, and dedicated improvement plans. This includes mentorship programs, technology transfer initiatives, and innovation workshops. Suppliers showing consistent improvement receive preferential status and increased business opportunities. Our multi-tier risk assessment framework covers immediate suppliers and their sub-suppliers. We employ predictive analytics to identify potential ESG risks, maintain contingency plans for high-risk scenarios, and conduct regular stress tests of our supply chain resilience. Currently, 95% of our suppliers meet our ESG standards, with 40% exceeding them. We achieve 100% traceability for critical materials and maintain a supplier retention rate of 85%. Our supplier diversity program includes 30% minority-owned businesses.",
+        "worst_response": "We check supplier compliance through annual self-reporting questionnaires. Basic environmental and social standards are included in our supplier contracts, and we rely on suppliers to maintain their own ESG standards. Our procurement decisions are primarily based on cost considerations. While we encourage suppliers to maintain good practices, we do not specifically incentivize ESG performance or allocate additional budget for sustainable sourcing. Suppliers receive our ESG guidelines during onboarding, and we maintain email communication for updates on policy changes. Compliance is checked during contract renewal periods. Suppliers are expected to meet minimum standards, and issues are addressed when reported. We review performance during annual contract renewals. We maintain a list of approved suppliers and address issues as they arise. Basic compliance checks are performed during initial supplier selection. Currently, 60% of suppliers meet basic compliance requirements, and we track major violations and address them on a case-by-case basis."
     }
 }
