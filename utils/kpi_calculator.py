@@ -1,9 +1,10 @@
 import pandas as pd
 import json
 import numpy as np
-from utils.text_evaluator import score_esg_narrative
+import traceback
 
 class KPICalculator:
+
     def __init__(self, kpi_specs_path="data\kpis.json"):
         """
         Initialize KPI Calculator with specifications from JSON
@@ -16,12 +17,11 @@ class KPICalculator:
         with open("data\kpi_reference.json", 'r') as f:
             self.kpi_reference = json.load(f)
         
-        # Comprehensive KPI calculation logic
         self.kpi_calculations = {
             # Environmental KPIs
             "Energy consumption, total": "total_energy_consumption + energy_by_source",
             "GHG emissions, total (scope I,II)": "scope_1_emissions + scope_2_emissions",
-            "Total CO₂,NOx, SOx, VOC emissions in million tonnes": "co2_emissions + nox_emissions + sox_emissions + voc_emissions",
+            "Total CO²,NOx, SOx, VOC emissions in million tonnes": "co2_emissions + nox_emissions + sox_emissions + voc_emissions",
             "Improvement rate of product energy efficiency compared to previous year": 
                 "((current_energy_efficiency - previous_energy_efficiency) / previous_energy_efficiency) * 100",
             "Water consumption in m³": "total_water_consumption + water_by_source",
@@ -33,109 +33,80 @@ class KPICalculator:
             "Percentage of FTE leaving p.a./total FTE": "(fte_leaving / total_fte_start) * 100",
             "Average expenses on training per FTE p.a": "total_training_expenses / total_fte",
             "Age structure/distribution (number of FTEs per age group, 10-year intervals)": "age_distribution",
-            "Total number of fatalities in relation to FTEs": "fatalities / total_fte",
+            "Total number of fatalities in relation to FTEsS04-04 II Total number of injuries in relation to FTEs": "fatalities / total_fte",
 
             # Financial and Business KPIs
-            "Total amount of bonuses, incentives and stock options paid out in €,$": 
+            "Total amount of bonuses, incentives and stock options paid out in â‚¬,$": 
                 "innovation_bonuses + innovation_incentives",
-            "Expenses and fines on anti-competitive behavior": "legal_expenses + fines_paid",
+            "Expenses and fines on filings, law suits related to anti-competitivebehavior, anti-trust and monopoly practices": "legal_expenses + fines_paid",
             "Percentage of revenues in regions with low corruption index": 
                 "(revenue_by_region / total_revenue) * 100",
             "Percentage of new products introduced in last 12 months": 
                 "(new_product_revenue / total_revenue) * 100",
-            "CapEx allocation to ESG investments": "(esg_investments / total_capex) * 100",
+            "CapEx allocation to investments on ESG relevant aspects of business as definedby the company (refered to Introduction 1.8.1. KPIs & Definitions)": "(esg_investments / total_capex) * 100",
             "Share of market by product/segment": "(product_revenue / total_market_revenue) * 100",
-            "Capacity utilisation of facilities": "(actual_capacity_used / total_capacity) * 100",
+            "Capacity utilisation as a percentage of total available facilities": "(actual_capacity_used / total_capacity) * 100",
 
             # Compliance and Political KPIs
-            "Contributions to political parties as percentage of revenue": 
-                "(political_contributions / total_revenue) * 100",
+            "Contributions to political parties as percentage of revenue": "(political_contributions / total_revenue) * 100",
             "Customer satisfaction percentage": "(customers_surveyed / total_customers) * 100",
             "CapEx allocation to investments on ESG relevant aspects": "(esg_investments / total_capex) * 100",
             "Total number of fatalities in relation to FTEs": "fatalities / total_fte",
-            "Total number of suppliers": "total_suppliers",
-            "Total amount of bonuses, incentives and stock options paid": "innovation_bonuses + innovation_incentives",
-            "Total number of FTEs receiving 90% of bonuses": "innovation_compensation_recipients",
+            "Total number of suppliersV28-02 II Percentage of sourcing from 3 biggest external suppliersV28-03 II Turnover of suppliers in percent": "total_suppliers",
+            "Total number of FTEs who receive 90 % of total amount of bonuses, incentivesand stock options": "innovation_compensation_recipients",
             "Expenses and fines on anti-competitive behavior": "legal_expenses + fines_paid",
-            "Percentage of revenues in regions with corruption index below 6.0": "(revenue_by_region / total_revenue) * 100",
+            "Percentage of revenues in regions with Transparency International corruptionindex below 6.0": "(revenue_by_region / total_revenue) * 100",
             "Percentage of new products introduced less than 12 months ago": "(new_product_revenue / total_revenue) * 100",
             "Contributions to political parties as percentage of revenue": "(political_contributions / total_revenue) * 100",
-            "Total cost of relocation": "relocation_costs",
+            "Total cost of relocation in monetary terms i.e. currency incl. Indemnity, pay-off,relocation of jobs outplacement, hiring, training, consulting": "relocation_costs",
             "Percentage of total customers surveyed comprising satisfied customers": "(customers_surveyed / total_customers) * 100",
             "Capacity utilisation as percentage of total facilities": "(actual_capacity_used / total_capacity) * 100",
-            "Share of market by product/segment/region": "(product_revenue / total_market_revenue) * 100"
+            "Share of market by product, product line, segment, region or total": "(product_revenue / total_market_revenue) * 100"
         }
 
-    def calculate_kpi(self, kpi_name, df,is_numeric=True):
+    def calculate_kpi(self, kpi_name, df, is_numeric=True):
         """
         Calculate KPI based on specifications and provided DataFrame
-        
+
         Args:
             kpi_name (str): Name of KPI to calculate
             df (pd.DataFrame): DataFrame containing required columns
-        
+            is_numeric (bool): Whether the KPI should return a numeric value
+
         Returns:
-            tuple: (KPI value, error message)
+            tuple: (KPI value, error message with traceback)
         """
         try:
-            # Retrieve calculation for specific KPI
+            kpi_spec = self.kpi_specs.get(kpi_name)
+            if not kpi_spec:
+                return None, f"No specification found for KPI: {kpi_name}\n{traceback.format_exc()}"
+
             calculation = self.kpi_calculations.get(kpi_name)
             if not calculation:
-                return None, f"No calculation found for {kpi_name}"
+                return None, f"No calculation formula found for KPI: {kpi_name}\n{traceback.format_exc()}"
 
-            # Get required columns from specification
-            kpi_spec = self.kpi_specs.get(kpi_name, {})
-            required_columns = [
-                item['name'] for item in kpi_spec.get('required_data', [])
-            ]
-
-            # Validate required columns
+            # Get required columns
+            required_columns = [item['name'] for item in kpi_spec.get('required_data', [])]
+        
             missing_columns = [col for col in required_columns if col not in df.columns]
             if missing_columns:
-                return None, f"Missing columns: {', '.join(missing_columns)}"
+                return None, f"Missing columns: {', '.join(missing_columns)}\n{traceback.format_exc()}"
 
-            # Perform calculation
-            result = df.apply(lambda row: eval(calculation, row.to_dict()), axis=1)
-            
-            # Return mean and no error
-            return result.mean(), None
-            
-        except Exception as e:
-            return None, f"Calculation error: {str(e)}"
+            if not is_numeric:
+                if len(df) > 0:
+                    return df[required_columns[0]].iloc[0], None
+                print(traceback.format_exc())
+                return None, f"No data available\n{traceback.format_exc()}"
 
-    def evaluate_answer(self, kpi_name: str, answer: str) -> tuple[float, str | None]:
-        """
-        Evaluate an ESG narrative answer against reference scores.
+            try:
+                result = df.apply(lambda row: eval(calculation, row.to_dict()), axis=1)
+                return float(result.mean()), None
+            except Exception as calc_error:
+                print(traceback.format_exc())
+                return None, f"Calculation error: {str(calc_error)}\n{traceback.format_exc()}"
         
-        Args:
-            kpi_name (str): The name of the KPI to evaluate
-            answer (str): The ESG narrative answer to evaluate
-            
-        Returns:
-            tuple[float, str | None]: A tuple containing:
-                - float: The calculated score
-                - str | None: Error message if any, None if successful
-                
-        Example:
-            score, error = calculator.evaluate_answer("Energy consumption, total", "Our company reduced...")
-        """
-        try:
-            if not isinstance(kpi_name, str) or not isinstance(answer, str):
-                return 0.0, "Invalid input types. Both kpi_name and answer must be strings"
-                
-            if not kpi_name in self.kpi_reference:
-                return 0.0, f"KPI '{kpi_name}' not found in reference data"
-                
-            reference = self.kpi_reference[kpi_name]
-            best_score = reference['best_score']
-            worst_score = reference['worst_score']
-            
-            score = score_esg_narrative(answer, best_score, worst_score)
-            return score, None
-            
         except Exception as e:
-            return 0.0, f"Evaluation error: {str(e)}"
-
+            return None, f"General error: {str(e)}\n{traceback.format_exc()}"
     def validate_kpi_data(self, df, kpi_name):
         """
         Validate data for a specific KPI

@@ -4,17 +4,18 @@ import plotly.express as px
 from utils.data_manager import DataManager
 from config.constants import CUSTOM_CSS
 import pandas as pd
-from typing import Dict, Any, List
+from typing import List,Optional
 import numpy as np
 from scipy.stats import gaussian_kde
-
-def custom_response_generator(prompt):
-    return f"Your LLM response to: {prompt}"
+from utils.filename_utils import get_original_kpi_name, load_name_mapping
+import os
+import json
 
 class DashboardPage:
     def __init__(self):
         self.data_manager = DataManager()
         self.categories = ['Environmental', 'Social', 'Governance']
+        self.kpi_reference = json.load(open('data/kpi_reference.json', 'r'))
 
     def render(self):
         
@@ -148,68 +149,149 @@ class DashboardPage:
                 st.rerun()
 
     def _render_overview_cards(self, categorized_data):
-        
         scores = {}
         for category, data in categorized_data.items():
             if len(data):
-                scores[category] = sum(data.values()) / len(data)
-        overall_score = sum(scores.values()) / len([s for s in scores.values() if s > 0])
+                category_scores = []
+                for kpi_name, value in data.items():
+                    normalized_value, _, _ = self._normalize_kpi_value(kpi_name, value, self.kpi_reference)
+                    category_scores.append(normalized_value)
+                scores[category] = sum(category_scores) / len(category_scores)
+        
+        overall_score = sum(scores.values()) / len([s for s in scores.values() if s > 0]) if scores else 0
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
+            status_color = "#6B46C1"
+            if overall_score >= 75:
+                status_icon = "↑"
+                description = "Strong performance"
+            else:
+                status_icon = "↓"
+                description = "Needs improvement"
+                
             self._metric_card(
                 "Overall ESG Score",
-                f"{overall_score:.1f}",
-                "Overall performance",
-                "#6B46C1"
+                f"{overall_score:.1f} {status_icon}",
+                description,
+                status_color
             )
         
         with col2:
             completed_kpis = sum(len(data) for data in categorized_data.values())
             total_kpis = self.data_manager.get_total_kpi_len(st.session_state.selected_industry)
+            completion_rate = (completed_kpis / total_kpis * 100) if total_kpis > 0 else 0
+            
+            status_color = "#059669"
+            if completion_rate >= 75:
+                status_icon = "↑"
+                description = "Good coverage"
+            else:
+                status_icon = "↓"
+                description = f"{total_kpis - completed_kpis} KPIs remaining"
+            
             self._metric_card(
                 "Completion Rate",
-                f"{completed_kpis}/{total_kpis}",
-                "Mandatory KPIs",
-                "#059669"
+                f"{completed_kpis}/{total_kpis} {status_icon}",
+                f"{completion_rate:.1f}% complete",
+                status_color
             )
         
         with col3:
-            highest_cat = max(scores.items(), key=lambda x: x[1]) if scores else ("None", 0)
-            self._metric_card(
-                "Top Category",
-                f"{highest_cat[0]}",
-                f"Score: {highest_cat[1]:.1f}",
-                "#2563EB"
-            )
+            if scores:
+                highest_cat = max(scores.items(), key=lambda x: x[1])
+                status_color = "#2563EB" 
+                if highest_cat[1] >= 75:
+                    status_icon = "↑"
+                    description = "Strong leader"
+                else:
+                    status_icon = "↓"
+                    description = "Room for improvement"
+                    
+                self._metric_card(
+                    "Top Category",
+                    f"{highest_cat[0]} {status_icon}",
+                    f"Score: {highest_cat[1]:.1f}",
+                    status_color
+                )
+            else:
+                self._metric_card(
+                    "Top Category",
+                    "No data",
+                    "Add KPIs to see results",
+                    "#2563EB"
+                )
 
     def _render_category_tab(self, category, category_data):
-        col1, col2 = st.columns([0.6, 0.4])
+        col1, col2 = st.columns([0.8, 0.2])
         with col1:
-            self._render_kpi_comparison_chart(category_data, category)
+            self._render_kpi_comparison_chart(category_data, category,self.kpi_reference)
         
         with col2:
-            self._render_category_performance_radar(category_data,category)
+            self._render_category_performance_radar(category_data,category,self.kpi_reference)
         
-        self._render_kpi_table(category_data)
+        self._render_kpi_table(category_data,self.kpi_reference)
 
-    def _render_kpi_comparison_chart(self, kpi_data, category):
+    def _normalize_kpi_value(self, kpi_name: str, value: float, kpi_reference: dict) -> tuple[float, float, str]:
+        """
+        Normalize KPI value to 0-100 scale and determine if inversion is needed
+        Returns: (normalized_value, original_value, unit)
+        """
+        ref = kpi_reference.get(kpi_name, {})
+        best = ref.get('best_score', 0)
+        worst = ref.get('worst_score', 0)
+        unit = ref.get('unit', '')
+        
+        if best == worst:
+            return 50, value, unit
+            
+        is_higher_better = best > worst
+        
+        if is_higher_better:
+            normalized = ((value - worst) / (best - worst)) * 100
+        else:
+            normalized = ((value - best) / (worst - best)) * 100
+            normalized = 100 - normalized
+            
+        normalized = max(0, min(100, normalized))
+        
+        return normalized, value, unit
+
+    def _render_kpi_comparison_chart(self, kpi_data: dict, category: str, kpi_reference: dict):
         st.markdown(f"### {category} KPI Performance")
+        
+        normalized_values = []
+        original_values = []
+        units = []
+        
+        for kpi_name, value in kpi_data.items():
+            norm_val, orig_val, unit = self._normalize_kpi_value(kpi_name, value, kpi_reference)
+            normalized_values.append(norm_val)
+            original_values.append(orig_val)
+            units.append(unit)
+        
         fig = go.Figure()
         
+        # Add bar for current values
         fig.add_trace(go.Bar(
             x=list(kpi_data.keys()),
-            y=list(kpi_data.values()),
+            y=normalized_values,
             marker_color='#6B46C1',
-            name='Current Value'
+            name='Current Value',
+            hovertemplate='%{x}<br>' +
+                        'Normalized Score: %{y:.1f}<br>' +
+                        'Original Value: %{customdata[0]:.2f} %{customdata[1]}<extra></extra>',
+            customdata=list(zip(original_values, units))
         ))
         
+        # Add bar for industry average
         fig.add_trace(go.Bar(
             x=list(kpi_data.keys()),
             y=[75] * len(kpi_data),
             name='Industry Average',
-            marker_color='#E5E7EB'
+            marker_color='#E5E7EB',
+            hovertemplate='Industry Average: 75<extra></extra>'
         ))
         
         fig.update_layout(
@@ -222,25 +304,32 @@ class DashboardPage:
                 y=1.02,
                 xanchor="right",
                 x=1
-            )
+            ),
+            yaxis_title="Normalized Score (0-100)"
         )
         
         st.plotly_chart(fig, use_container_width=True)
 
-    def _render_category_performance_radar(self, kpi_data,category):
+    def _render_category_performance_radar(self, kpi_data: dict, category: str, kpi_reference: dict):
         st.markdown("### Performance Distribution")
+        
+        # Normalize all values first
+        normalized_values = []
+        for kpi_name, value in kpi_data.items():
+            norm_val, _, _ = self._normalize_kpi_value(kpi_name, value, kpi_reference)
+            normalized_values.append(norm_val)
         
         # Create metrics for radar chart
         metrics = ['Average', 'Maximum', 'Minimum', 'Median']
-        if len(kpi_data):
+        if normalized_values:
             values = [
-                sum(kpi_data.values()) / len(kpi_data),
-                max(kpi_data.values()),
-                min(kpi_data.values()),
-                sorted(kpi_data.values())[len(kpi_data)//2]
+                sum(normalized_values) / len(normalized_values),
+                max(normalized_values),
+                min(normalized_values),
+                sorted(normalized_values)[len(normalized_values)//2]
             ]
         else:
-            values=[0,0,0,0]
+            values = [0, 0, 0, 0]
         
         fig = go.Figure()
         
@@ -263,26 +352,33 @@ class DashboardPage:
             margin=dict(t=0, b=0, l=30, r=30)
         )
         
-        st.plotly_chart(fig, use_container_width=True,key=hash(category))
+        st.plotly_chart(fig, use_container_width=True, key=hash(category))
 
-    def _render_kpi_table(self, kpi_data):
+    def _render_kpi_table(self, kpi_data: dict, kpi_reference: dict):
         st.markdown("### KPI Details")
         
-        df = pd.DataFrame({
-            'KPI': kpi_data.keys(),
-            'Value': kpi_data.values(),
-            'Status': ['On Track' if v >= 75 else 'Needs Attention' for v in kpi_data.values()],
-            'Trend': ['↑' if v >= 75 else '↓' for v in kpi_data.values()]
-        })
+        rows = []
+        for kpi_name, value in kpi_data.items():
+            normalized_value, original_value, unit = self._normalize_kpi_value(kpi_name, value, kpi_reference)
+            rows.append({
+                'KPI': kpi_name,
+                'Original Value': f"{original_value:.2f} {unit}",
+                'Normalized Score': normalized_value,
+                'Status': 'On Track' if normalized_value >= 75 else 'Needs Attention',
+                'Trend': '↑' if normalized_value >= 75 else '↓'
+            })
+        
+        df = pd.DataFrame(rows)
         
         st.dataframe(
             df,
             hide_index=True,
             column_config={
                 'KPI': 'KPI Name',
-                'Value': st.column_config.NumberColumn(
-                    'Score',
-                    help='KPI Score out of 100',
+                'Original Value': 'Actual Value',
+                'Normalized Score': st.column_config.NumberColumn(
+                    'Normalized Score',
+                    help='Score normalized to 0-100 scale',
                     format='%.1f'
                 ),
                 'Status': st.column_config.TextColumn(
@@ -333,42 +429,62 @@ class DashboardPage:
             st.info("No KPI calculation data available for analysis")
             return
         
-        # Create KPI selector dropdown
-        selected_kpi = st.selectbox(
+        # Create KPI selector dropdown with original names
+        name_mapping = load_name_mapping()
+        display_names = {sanitized: original for sanitized, original in name_mapping.items() 
+                        if f"{sanitized}_cal_data.csv" in kpi_files}
+        
+        if not display_names:
+            st.info("No mapped KPI data available for analysis")
+            return
+            
+        selected_display_name = st.selectbox(
             "Select KPI for detailed analysis",
-            options=kpi_files,
+            options=list(display_names.values()),
             format_func=lambda x: x.replace('_', ' ').title()
         )
         
+        # Find the corresponding sanitized name
+        selected_sanitized = next(
+            (san for san, orig in display_names.items() 
+            if orig == selected_display_name), 
+            None
+        )
+        
+        if not selected_sanitized:
+            st.error("Could not find corresponding file for selected KPI")
+            return
+
         # Load and analyze selected KPI data
-        kpi_data = self._load_kpi_data(selected_kpi)
+        kpi_data = self._load_kpi_data(selected_sanitized)
         
         if kpi_data is None or kpi_data.empty:
-            st.error(f"No data available for {selected_kpi}")
+            st.error(f"No data available for {selected_display_name}")
             return
         
         # Render EDA components
-        self._render_kpi_data_summary(kpi_data, selected_kpi)
-        self._render_kpi_distributions(kpi_data, selected_kpi)
-        self._render_kpi_correlations(kpi_data, selected_kpi)
-        self._render_time_patterns(kpi_data, selected_kpi)
+        self._render_kpi_data_summary(kpi_data, selected_display_name)
+        self._render_kpi_distributions(kpi_data, selected_display_name)
+        self._render_kpi_correlations(kpi_data, selected_display_name)
+        self._render_time_patterns(kpi_data, selected_display_name)
 
     def _get_kpi_files(self) -> List[str]:
         """Get list of KPI files from session_files directory"""
-        import os
         session_files_dir = "session_files"
         if not os.path.exists(session_files_dir):
             return []
         
-        return [f.replace('.csv', '') for f in os.listdir(session_files_dir) 
-                if f.endswith('.csv')]
+        return [f for f in os.listdir(session_files_dir) 
+                if f.endswith('_cal_data.csv')]
 
-    def _load_kpi_data(self, kpi_name: str) -> pd.DataFrame:
+    def _load_kpi_data(self, sanitized_name: str) -> Optional[pd.DataFrame]:
         """Load KPI data from CSV file"""
         try:
-            file_path = f"session_files/{kpi_name}.csv"
-            df = pd.read_csv(file_path)
-            return df
+            file_path = f"session_files/{sanitized_name}_cal_data.csv"
+            if os.path.exists(file_path):
+                df = pd.read_csv(file_path)
+                return df
+            return None
         except Exception as e:
             st.error(f"Error loading data: {str(e)}")
             return None

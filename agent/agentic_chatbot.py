@@ -8,6 +8,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+os.environ["GROQ_API_KEY2"] = os.getenv("GROQ_API_KEY2")
 def create_llm(model_type: str) -> LLM:
         """Create an LLM instance based on type"""
         
@@ -22,7 +24,7 @@ def create_llm(model_type: str) -> LLM:
                 'model': "groq/llama3-8b-8192",
                 'temperature': 0.2,
                 'base_url': "https://api.groq.com/openai/v1",
-                'api_key': os.environ["GROQ_API_KEY"]
+                'api_key': os.environ["GROQ_API_KEY2"]
             },
             'chat': {
                 'model': "groq/llama3-8b-8192",
@@ -250,7 +252,7 @@ class ESGAdvisorSystem:
                 
                 Format as markdown with clear sections.
             """,
-            expected_output="Complete ESG advisory report",
+            expected_output="Complete ESG advisory report with the appropriate important data in a well structured manner",
             agent=self.agents['communication'].agent
         )
         
@@ -269,9 +271,9 @@ class ESGAdvisorSystem:
             }
             
             strategy = self.develop_strategy(analyses)
-            report = self.generate_report(processed_data, analyses, strategy)
+            # report = self.generate_report(processed_data, analyses, strategy)
             self.progress.clear()
-            return report
+            return strategy
             
         except Exception as e:
             self.progress.clear()

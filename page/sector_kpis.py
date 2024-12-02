@@ -6,6 +6,10 @@ from streamlit_modal import Modal
 import uuid
 from utils.data_manager import DataManager
 from utils.kpi_calculator import KPICalculator
+from utils.logging import kpi_logger, log_dataframe_info
+import logging
+from utils.filename_utils import get_kpi_filename
+from utils.text_evaluator import score_esg_narrative
 
 class KPIsPage:
     def __init__(self):
@@ -135,14 +139,14 @@ class KPIsPage:
             for filename, file_info in st.session_state.uploaded_files.items():
                 st.text(f"📄 {filename} - {len(file_info['columns'])} columns")
 
+    @kpi_logger.log_execution
     def _auto_map_columns(self, available_columns, required_columns):
-        """Automatically map columns if exact matches are found"""
         mappings_updated = False
         for col_key, col_info in required_columns.items():
             if col_info['name'] in available_columns:
                 if st.session_state.column_mappings.get(col_key) != col_info['name']:
                     st.session_state.column_mappings[col_key] = col_info['name']
-                    mappings_updated = True
+                    mappings_updated = True        
         return mappings_updated
 
     def _setup_directory(self):
@@ -167,15 +171,16 @@ class KPIsPage:
             }
             for item in kpi_spec.get('required_data', [])
         ]
-
+    
+    @kpi_logger.log_execution
+    @log_dataframe_info
     def _process_mapped_data(self, filename, kpi_name):
-        """Process mapped data for a specific KPI"""
+        """Process mapped data for KPI calculation and storage"""
         try:
             df = st.session_state.uploaded_files[filename]['data']
             required_columns = self._get_required_columns(kpi_name)
             
             if not required_columns:
-                st.warning(f"No specification found for {kpi_name}")
                 return False
             
             # Get mappings for this KPI
@@ -185,25 +190,16 @@ class KPIsPage:
                 mapped_column = st.session_state.column_mappings.get(mapping_key)
                 if mapped_column:
                     mappings[col_info['name']] = mapped_column
-
+            
             # Validate mappings
             if len(mappings) != len(required_columns):
                 missing = [col['name'] for col in required_columns if col['name'] not in mappings]
-                st.warning(f"Incomplete mapping for {kpi_name}. Missing: {', '.join(missing)}")
                 st.session_state.mapping_status[kpi_name] = "incomplete"
-                return False
-
-            # Validate columns exist in DataFrame
-            missing_cols = [col for col in mappings.values() if col not in df.columns]
-            if missing_cols:
-                st.warning(f"Columns not found in DataFrame: {', '.join(missing_cols)}")
-                st.session_state.mapping_status[kpi_name] = "invalid"
                 return False
 
             # Create processed DataFrame
             selected_df = df[list(mappings.values())].copy()
             selected_df.columns = list(mappings.keys())
-            
             # Calculate KPI value
             result, error = self.kpi_calculator.calculate_kpi(kpi_name, selected_df)
             
@@ -211,21 +207,25 @@ class KPIsPage:
                 st.session_state.calculated_values[kpi_name] = result
                 st.session_state.kpi_data[kpi_name] = result
                 st.session_state.mapping_status[kpi_name] = "complete"
-                st.success(f"Calculated {kpi_name}: {result:.2f}")
+                
+                # Get proper filename using the utility function
+                output_filename = get_kpi_filename(kpi_name)
+                
+                # Ensure directory exists
+                os.makedirs("session_files", exist_ok=True)
+                
+                # Save processed data
+                selected_df.to_csv(output_filename, index=False)
+                
+                return True
             else:
-                st.error(f"Calculation error for {kpi_name}: {error}")
                 st.session_state.mapping_status[kpi_name] = "error"
                 return False
-            
-            # Save processed data
-            output_filename = f"session_files/{kpi_name}_cal_data.csv"
-            selected_df.to_csv(output_filename, index=False)
-            
-            return True
 
         except Exception as e:
-            st.error(f"Error processing data for {kpi_name}: {str(e)}")
             st.session_state.mapping_status[kpi_name] = "error"
+            logging.error(f"Error processing data for {kpi_name}: {str(e)}")
+            logging.error("Traceback:", exc_info=True)
             return False
 
     def _render_column_mapping(self):
@@ -328,7 +328,6 @@ class KPIsPage:
             col1, col2 = st.columns([0.7, 0.3])
             kpi_details = self.data_manager.get_kpi_details(kpi)
             if kpi_details["specification"] in self.kpi_specs.keys():
-                print(kpi_details['specification'])
                 with col1:
                     st.markdown(f"**{kpi_details['kpi_name']}**")
                     st.markdown(f"*Specification:* {kpi_details['specification']}")
@@ -341,42 +340,25 @@ class KPIsPage:
                             st.session_state.modal_state = True
                             st.session_state.current_kpi = kpi
                             st.rerun()
-                    else:
-                        # Check for KPI calculation data
-                        kpi_file = f"session_files/{kpi_details['specification']}_cal_data.csv"
-                        
-                        if os.path.exists(kpi_file):
-                            try:
-                                df = pd.read_csv(kpi_file)
-                                result, error = self.kpi_calculator.calculate_kpi(
-                                    kpi_details['specification'], 
-                                    df
-                                )
-                                
-                                if result is not None:
-                                    st.session_state.kpi_data[kpi] = {
-                                        'value': result, 
+                        if kpi_details["specification"] in st.session_state.calculated_values:
+                                result=round(st.session_state.calculated_values[kpi_details['specification']], 2)
+                                st.markdown(f"**Value:** {result}")
+                                st.session_state.kpi_data[kpi] = {
+                                        'value': result,
                                         'status': 'Calculated'
                                     }
-                                    st.markdown(f"**Status:** Calculated")
-                                    st.markdown(f"**Value:** {result:.2f}")
-                                else:
-                                    st.session_state.kpi_data[kpi] = {
-                                        'value': None, 
-                                        'status': 'Calculation Error'
-                                    }
-                                    st.markdown(f"**Status:** Calculation Error")
-                                    st.info(error)
-                            
-                            except Exception as e:
-                                st.session_state.kpi_data[kpi] = {
-                                    'value': None, 
-                                    'status': 'Data Processing Error'
-                                }
-                                st.markdown(f"**Status:** Data Processing Error")
-                                st.error(str(e))
                         else:
-                            st.markdown(f"**Status:** Data incomplete")
+                            st.markdown(f"**Status:** Pending")
+                    else:
+                            if kpi_details["specification"] in st.session_state.calculated_values:
+                                result=round(st.session_state.calculated_values[kpi_details['specification']], 2)
+                                st.markdown(f"**Value:** {result}")
+                                st.session_state.kpi_data[kpi] = {
+                                        'value': result,
+                                        'status': 'Calculated'
+                                    }
+                            else:
+                                st.markdown(f"**Status:** Pending")
                     
                 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -397,9 +379,13 @@ class KPIsPage:
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Submit", key=f"submit_{hash(kpi)}"):
-                st.session_state.kpi_data[kpi] = value
-                st.session_state.modal_state = False
-                st.rerun()
+                if not value:
+                    st.error("Please enter a response.")
+                else:
+                    value=score_esg_narrative(value,kpi)
+                    st.session_state.calculated_values[kpi] = value
+                    st.session_state.modal_state = False
+                    st.rerun()
         with col2:
             if st.button("Cancel", key=f"cancel_{hash(kpi)}"):
                 st.session_state.modal_state = False
