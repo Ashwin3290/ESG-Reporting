@@ -248,7 +248,7 @@ class ChatInterface:
             elif prompt_type == "question":
                 return self._handle_question(prompt)
                 
-            else:  # General chat
+            else:  
                 return self._handle_chat(prompt)
                 
         except Exception as e:

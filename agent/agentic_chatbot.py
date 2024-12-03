@@ -76,7 +76,7 @@ class ESGAdvisorSystem:
                 role='ESG Data Processor',
                 goal='Process and validate ESG metrics',
                 backstory="""Expert in ESG data processing and validation, ensuring 
-                           data quality and standardization.""",
+                        data quality and standardization.""",
                 llm_type='analysis'
             ),
             
@@ -84,7 +84,7 @@ class ESGAdvisorSystem:
                 role='Environmental Analyst',
                 goal='Analyze environmental performance',
                 backstory="""Specialist in environmental metrics, climate impact, 
-                           and sustainability practices.""",
+                        and sustainability practices.""",
                 llm_type='analysis'
             ),
             
@@ -92,7 +92,7 @@ class ESGAdvisorSystem:
                 role='Social Impact Analyst',
                 goal='Analyze social performance',
                 backstory="""Expert in social metrics, workforce analytics, and 
-                           community impact assessment.""",
+                        community impact assessment.""",
                 llm_type='analysis'
             ),
             
@@ -100,7 +100,7 @@ class ESGAdvisorSystem:
                 role='Governance Analyst',
                 goal='Analyze governance structure',
                 backstory="""Specialist in corporate governance, ethics, and 
-                           compliance frameworks.""",
+                        compliance frameworks.""",
                 llm_type='analysis'
             ),
             
@@ -108,7 +108,7 @@ class ESGAdvisorSystem:
                 role='Strategy Developer',
                 goal='Develop improvement strategies',
                 backstory="""Expert in ESG strategy development and 
-                           implementation planning.""",
+                        implementation planning.""",
                 llm_type='strategy'
             ),
             
@@ -116,7 +116,7 @@ class ESGAdvisorSystem:
                 role='Communication Specialist',
                 goal='Present findings effectively',
                 backstory="""Specialist in presenting ESG information to 
-                           different stakeholders.""",
+                        different stakeholders.""",
                 llm_type='chat'
             )
         }
@@ -222,9 +222,9 @@ class ESGAdvisorSystem:
         return stage.execute(lambda _: self.agents['strategy'].execute_task(task))
         
     def generate_report(self, 
-                       data: Dict, 
-                       analyses: Dict, 
-                       strategy: Dict) -> str:
+                    data: Dict, 
+                    analyses: Dict, 
+                    strategy: Dict) -> str:
         """Generate final report"""
         stage = AnalysisStage(
             "Report Generation",
@@ -271,7 +271,6 @@ class ESGAdvisorSystem:
             }
             
             strategy = self.develop_strategy(analyses)
-            # report = self.generate_report(processed_data, analyses, strategy)
             self.progress.clear()
             return strategy
             
