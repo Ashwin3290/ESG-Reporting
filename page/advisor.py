@@ -280,7 +280,8 @@ class ChatInterface:
         return st.session_state.advisor.run_analysis({
             "type": "data_overview",
             "data": st.session_state.kpi_data
-        })
+        },
+        st.session_state.selected_industry)
         
     def _handle_analysis_request(self) -> str:
         """Handle request for ESG analysis"""
@@ -291,7 +292,8 @@ class ChatInterface:
         response = st.session_state.advisor.run_analysis({
             "type": "full_analysis",
             "data": st.session_state.kpi_data
-        })
+        },
+        st.session_state.selected_industry)
         
         st.session_state.current_analysis = response
         return response
@@ -303,7 +305,8 @@ class ChatInterface:
                 "type": "question",
                 "question": prompt,
                 "context": st.session_state.current_analysis
-            })
+            },
+            st.session_state.selected_industry)
         else:
             return ("I don't have any recent analysis context. Would you like me to "
                 "analyze your ESG metrics first?")
@@ -314,7 +317,7 @@ class ChatInterface:
             "type": "chat",
             "message": prompt,
             "has_data": hasattr(st.session_state, 'kpi_data') and bool(st.session_state.kpi_data)
-        })
+        },st.session_state.selected_industry)
         
     def _reset_chat(self):
         """Reset chat state"""

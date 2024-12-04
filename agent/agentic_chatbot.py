@@ -8,29 +8,28 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
-os.environ["GROQ_API_KEY2"] = os.getenv("GROQ_API_KEY2")
+# os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY")
+# os.environ["GROQ_API_KEY2"] = os.getenv("GROQ_API_KEY2")
+os.environ["GEMINI_API_KEY"] = os.getenv("GEMINI_API_KEY")
+print("Gemini")
+
 def create_llm(model_type: str) -> LLM:
         """Create an LLM instance based on type"""
         
         configs = {
             'analysis': {
-                'model': "groq/llama3-8b-8192",
+                'model': "gemini/gemini-1.5-flash",
                 'temperature': 0.1,
-                'base_url': "https://api.groq.com/openai/v1",
-                'api_key': os.environ["GROQ_API_KEY"]
+                'api_key': os.environ["GEMINI_API_KEY"]
             },
             'strategy': {
-                'model': "groq/llama3-8b-8192",
+                'model': "gemini/gemini-1.5-flash",
                 'temperature': 0.2,
-                'base_url': "https://api.groq.com/openai/v1",
-                'api_key': os.environ["GROQ_API_KEY2"]
+                'api_key': os.environ["GEMINI_API_KEY"]
             },
             'chat': {
-                'model': "groq/llama3-8b-8192",
-                'temperature': 0.7,
-                'base_url': "https://api.groq.com/openai/v1",
-                'api_key': os.environ["GROQ_API_KEY"]
+                'model': "gemini/gemini-1.5-flash",
+                'api_key': os.environ["GEMINI_API_KEY"]
             }
         }
         
@@ -40,8 +39,8 @@ def create_llm(model_type: str) -> LLM:
         config = configs[model_type]
         return LLM(
             model=config['model'],
-            temperature=config['temperature'],
-            base_url=config['base_url'],
+            # temperature=config['temperature'],
+            # base_url=config['base_url'],
             api_key=config['api_key']
         )
 
@@ -121,7 +120,7 @@ class ESGAdvisorSystem:
             )
         }
         
-    def process_data(self, data: Dict) -> Dict:
+    def process_data(self, data: Dict, industry: str) -> Dict:
         """Process and validate input data"""
         stage = AnalysisStage(
             "Data Processing",
@@ -136,7 +135,7 @@ class ESGAdvisorSystem:
         
         task = Task(
             description=f"""
-                Process and validate this ESG data:
+                Process and validate this ESG data from the {industry} industry:
                 {json.dumps(data, indent=2)}
                 
                 Steps:
@@ -157,7 +156,7 @@ class ESGAdvisorSystem:
         
         return stage.execute(lambda _: self.agents['data'].execute_task(task))
         
-    def analyze_category(self, category: str, data: Dict) -> Dict:
+    def analyze_category(self, category: str, data: Dict, industry: str) -> Dict:
         """Analyze specific ESG category"""
         stage = AnalysisStage(
             f"{category.title()} Analysis",
@@ -172,7 +171,7 @@ class ESGAdvisorSystem:
         
         task = Task(
             description=f"""
-                Analyze {category} performance:
+                Analyze {category} performance from the {industry} industry:
                 {json.dumps(data, indent=2)}
                 
                 Provide:
@@ -189,7 +188,7 @@ class ESGAdvisorSystem:
         
         return stage.execute(lambda _: self.agents[category].execute_task(task))
         
-    def develop_strategy(self, analyses: Dict) -> Dict:
+    def develop_strategy(self, analyses: Dict, industry: str) -> Dict:
         """Develop comprehensive improvement strategy"""
         stage = AnalysisStage(
             "Strategy Development",
@@ -204,7 +203,7 @@ class ESGAdvisorSystem:
         
         task = Task(
             description=f"""
-                Develop strategy based on analyses:
+                Develop strategy based on analyses from the {industry} industry:
                 {json.dumps(analyses, indent=2)}
                 
                 Create:
@@ -213,7 +212,7 @@ class ESGAdvisorSystem:
                 3. Implementation timeline
                 4. Resource requirements
                 
-                Return detailed JSON strategy.
+                Return detailed Markdown strategy.
             """,
             expected_output="Comprehensive ESG strategy",
             agent=self.agents['strategy'].agent
@@ -224,7 +223,8 @@ class ESGAdvisorSystem:
     def generate_report(self, 
                     data: Dict, 
                     analyses: Dict, 
-                    strategy: Dict) -> str:
+                    strategy: Dict,
+                    industry: str) -> str:
         """Generate final report"""
         stage = AnalysisStage(
             "Report Generation",
@@ -239,7 +239,7 @@ class ESGAdvisorSystem:
         
         task = Task(
             description=f"""
-                Create comprehensive report using:
+                Create comprehensive report from the {industry} industry using:
                 Processed Data: {json.dumps(data, indent=2)}
                 Analyses: {json.dumps(analyses, indent=2)}
                 Strategy: {json.dumps(strategy, indent=2)}
@@ -258,19 +258,19 @@ class ESGAdvisorSystem:
         
         return stage.execute(lambda _: self.agents['communication'].execute_task(task))
         
-    def run_analysis(self, input_data: Dict) -> str:
+    def run_analysis(self, input_data: Dict, industry: str) -> str:
         """Run complete ESG analysis pipeline"""
         self.progress.init_tracking()
         
         try:
-            processed_data = self.process_data(input_data)
+            processed_data = self.process_data(input_data,industry)
             
             analyses = {
-                category: self.analyze_category(category, processed_data)
+                category: self.analyze_category(category, processed_data,industry)
                 for category in ['environmental', 'social', 'governance']
             }
             
-            strategy = self.develop_strategy(analyses)
+            strategy = self.develop_strategy(analyses,industry)
             self.progress.clear()
             return strategy
             
