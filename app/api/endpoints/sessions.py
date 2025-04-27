@@ -1,14 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Body
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
 from ...services.data_manager import DataManagerService
 from ..dependencies import get_data_manager
 
 router = APIRouter()
 
 class SessionCreate(BaseModel):
-    industry: Optional[str] = None
+    industry: str = Field(..., description="Industry name (required)")
     session_duration_days: int = 7
 
 class SessionUpdate(BaseModel):
@@ -22,10 +23,27 @@ async def create_session(
     session_data: SessionCreate = Body(...),
     data_manager: DataManagerService = Depends(get_data_manager)
 ):
-    """Create a new session, optionally with an industry"""
+    """
+    Create a new session with required industry.
+    The industry determines which KPIs will be available for processing.
+    """
+    # Verify industry exists
+    industry = await data_manager.get_industry(session_data.industry)
+    if not industry:
+        raise HTTPException(status_code=404, detail=f"Industry '{session_data.industry}' not found")
+    
     expires_at = datetime.utcnow() + timedelta(days=session_data.session_duration_days)
     session_id = await data_manager.create_session(session_data.industry, expires_at)
-    return {"session_id": session_id, "expires_at": expires_at}
+    
+    # Get KPIs for industry
+    kpis = await data_manager.get_industry_kpis_by_category(session_data.industry)
+    
+    return {
+        "session_id": session_id, 
+        "industry": session_data.industry,
+        "expires_at": expires_at,
+        "kpis_by_category": kpis
+    }
 
 @router.get("/{session_id}")
 async def get_session(
@@ -53,6 +71,11 @@ async def update_session(
     update_dict = {}
     
     if update_data.industry is not None:
+        # Verify industry exists if changing
+        industry = await data_manager.get_industry(update_data.industry)
+        if not industry:
+            raise HTTPException(status_code=404, detail=f"Industry '{update_data.industry}' not found")
+        
         update_dict["industry"] = update_data.industry
         
     # Always update last_updated

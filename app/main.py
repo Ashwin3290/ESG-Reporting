@@ -2,6 +2,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import json
+from datetime import datetime
 
 from .core.config import settings
 from .core.logging import setup_logging
@@ -10,10 +11,11 @@ from .api.endpoints import (
     industries,
     sessions,
     files,
-    kpis,
-    column_mapping,
+    # kpis,  # Removed redundant endpoint
+    # column_mapping,  # Removed redundant endpoint
     dashboard,
-    advisor
+    advisor,
+    processor  # New processor endpoint
 )
 
 # Setup logging
@@ -54,10 +56,11 @@ app.add_event_handler("shutdown", close_mongo_connection)
 app.include_router(industries.router, prefix="/api/industries", tags=["industries"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
-app.include_router(kpis.router, prefix="/api/kpis", tags=["kpis"])
-app.include_router(column_mapping.router, prefix="/api/mapping", tags=["column_mapping"])
+# app.include_router(kpis.router, prefix="/api/kpis", tags=["kpis"])  # Replaced by processor
+# app.include_router(column_mapping.router, prefix="/api/mapping", tags=["column_mapping"])  # Replaced by processor
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(advisor.router, prefix="/api/advisor", tags=["advisor"])
+app.include_router(processor.router, prefix="/api/processor", tags=["processor"])  # New processor router
 
 # Root endpoint
 @app.get("/")
@@ -72,7 +75,11 @@ async def root():
 # Health check endpoint
 @app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
+    return {
+        "status": "healthy",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0"
+    }
 
 if __name__ == "__main__":
     import uvicorn

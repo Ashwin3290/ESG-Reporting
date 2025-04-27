@@ -5,6 +5,7 @@ from ..services.kpi_calculator import KPICalculatorService
 from ..services.file_service import FileService
 from ..services.advisor import ESGAdvisorService
 from ..services.column_mapping import ColumnMappingService
+from ..services.auto_processor import AutoProcessorService
 from ..utils.llm_helpers import GeminiClient
 from ..core.security import verify_api_key
 from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorGridFSBucket
@@ -43,6 +44,12 @@ def get_advisor_service(
     db: AsyncIOMotorDatabase = Depends(get_db)
 ):
     return ESGAdvisorService(gemini_client, db)
+
+def get_auto_processor(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    gemini_client: GeminiClient = Depends(get_gemini_client)
+):
+    return AutoProcessorService(db, gemini_client)
 
 # Authentication dependencies
 def get_authenticated_api_key(api_key: str = Depends(verify_api_key)):

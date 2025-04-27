@@ -46,7 +46,7 @@ def start_api():
         "app.main:app",
         host=settings.API_HOST,
         port=settings.API_PORT,
-        # reload=settings.DEBUG
+        reload=settings.DEBUG
     )
 
 if __name__ == "__main__":
