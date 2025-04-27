@@ -1,5 +1,6 @@
 import logging
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorGridFSBucket
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 from ..core.config import settings
 
@@ -8,6 +9,7 @@ logger = logging.getLogger(__name__)
 class MongoDB:
     client: AsyncIOMotorClient = None
     db: AsyncIOMotorDatabase = None
+    fs: AsyncIOMotorGridFSBucket = None
 
 async def connect_to_mongo():
     """Connect to MongoDB database"""
@@ -26,6 +28,9 @@ async def connect_to_mongo():
         raise
     
     MongoDB.db = MongoDB.client[settings.MONGODB_DATABASE]
+    
+    # Initialize GridFS bucket
+    MongoDB.fs = AsyncIOMotorGridFSBucket(MongoDB.db)
     
     # Setup indexes
     await setup_indexes()
@@ -55,3 +60,7 @@ async def close_mongo_connection():
 def get_database() -> AsyncIOMotorDatabase:
     """Get MongoDB database instance"""
     return MongoDB.db
+
+def get_gridfs() -> AsyncIOMotorGridFSBucket:
+    """Get GridFS bucket instance"""
+    return MongoDB.fs

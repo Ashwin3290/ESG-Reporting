@@ -1,5 +1,5 @@
 from fastapi import Depends
-from ..db.mongodb import get_database
+from ..db.mongodb import get_database, get_gridfs
 from ..services.data_manager import DataManagerService
 from ..services.kpi_calculator import KPICalculatorService
 from ..services.file_service import FileService
@@ -7,7 +7,7 @@ from ..services.advisor import ESGAdvisorService
 from ..services.column_mapping import ColumnMappingService
 from ..utils.llm_helpers import GeminiClient
 from ..core.security import verify_api_key
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorGridFSBucket
 
 # Database dependency
 def get_db():
@@ -17,8 +17,11 @@ def get_db():
 def get_data_manager(db: AsyncIOMotorDatabase = Depends(get_db)):
     return DataManagerService(db)
 
-def get_file_service(db: AsyncIOMotorDatabase = Depends(get_db)):
-    return FileService(db)
+def get_file_service(
+    db: AsyncIOMotorDatabase = Depends(get_db),
+    fs: AsyncIOMotorGridFSBucket = Depends(get_gridfs)
+):
+    return FileService(db, fs)
 
 def get_kpi_calculator(
     db: AsyncIOMotorDatabase = Depends(get_db),
