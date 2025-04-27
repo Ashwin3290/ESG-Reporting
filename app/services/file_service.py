@@ -4,10 +4,11 @@ import io
 import uuid
 import pandas as pd
 from fastapi import UploadFile
-from motor.motor_asyncio import AsyncIOMotorDatabase
+from motor.motor_asyncio import AsyncIOMotorDatabase, AsyncIOMotorGridFSBucket
 from datetime import datetime
 from typing import Dict, List, Any, Optional, Tuple, BinaryIO
 import csv
+from bson import ObjectId
 
 from ..utils.filename_utils import sanitize_filename, get_file_extension, generate_unique_filename, parse_csv_columns
 
@@ -16,8 +17,9 @@ logger = logging.getLogger(__name__)
 class FileService:
     """Service for managing file uploads and processing"""
     
-    def __init__(self, db: AsyncIOMotorDatabase):
+    def __init__(self, db: AsyncIOMotorDatabase, fs: AsyncIOMotorGridFSBucket):
         self.db = db
+        self.fs = fs
         
     async def upload_file(self, session_id: str, file: UploadFile) -> str:
         """
@@ -45,7 +47,7 @@ class FileService:
         filename = generate_unique_filename(original_filename)
         
         # Store the file in GridFS
-        grid_out = await self.db.fs.upload_from_stream(
+        grid_out = await self.fs.upload_from_stream(
             filename=filename,
             source=io.BytesIO(content),
             metadata={
@@ -115,15 +117,37 @@ class FileService:
         try:
             # Retrieve file from GridFS
             grid_id = metadata.get("grid_id")
-            grid_out = await self.db.fs.open_download_stream(grid_id)
             
-            # Read file content
-            chunks = []
-            while chunk := await grid_out.readchunk():
-                chunks.append(chunk)
+            # Check if grid_id is a string and convert to ObjectId if needed
+            if isinstance(grid_id, str):
+                try:
+                    grid_id = ObjectId(grid_id)
+                except Exception as e:
+                    logger.warning(f"Failed to convert grid_id to ObjectId: {str(e)}")
             
-            content = b"".join(chunks)
-            return content, metadata
+            # Try to get the file using the new GridFS bucket first
+            try:
+                grid_out = await self.fs.open_download_stream(grid_id)
+                
+                # Read file content
+                chunks = []
+                while chunk := await grid_out.readchunk():
+                    chunks.append(chunk)
+                
+                content = b"".join(chunks)
+                return content, metadata
+            except Exception as e:
+                # If that fails, try the legacy method through self.db.fs
+                logger.warning(f"Could not retrieve file with new GridFS bucket: {str(e)}. Trying legacy method.")
+                grid_out = await self.db.fs.find_one({"_id": grid_id})
+                
+                if grid_out:
+                    # If we find the file through the legacy method, return its content
+                    return grid_out.get("data", None), metadata
+                else:
+                    # If both methods fail, raise the exception
+                    raise e
+                
         except Exception as e:
             logger.error(f"Error retrieving file content: {str(e)}")
             return None, metadata
@@ -154,7 +178,21 @@ class FileService:
         try:
             # Delete file from GridFS
             grid_id = metadata.get("grid_id")
-            await self.db.fs.delete(grid_id)
+            
+            # Check if grid_id is a string and convert to ObjectId if needed
+            if isinstance(grid_id, str):
+                try:
+                    grid_id = ObjectId(grid_id)
+                except Exception as e:
+                    logger.warning(f"Failed to convert grid_id to ObjectId: {str(e)}")
+            
+            try:
+                # Try the new method first
+                await self.fs.delete(grid_id)
+            except Exception as e:
+                # If that fails, try the legacy method
+                logger.warning(f"Could not delete file with new GridFS bucket: {str(e)}. Trying legacy method.")
+                await self.db.fs.delete_one({"_id": grid_id})
             
             # Delete file metadata
             await self.db.file_metadata.delete_one({"file_id": file_id})
@@ -269,3 +307,68 @@ class FileService:
         except Exception as e:
             logger.error(f"Error getting file sample: {str(e)}")
             return None
+            
+    async def migrate_legacy_file(self, file_id: str) -> bool:
+        """
+        Migrate a file from the legacy storage format to the new GridFS bucket
+        
+        Args:
+            file_id: File ID
+            
+        Returns:
+            True if migration was successful, False otherwise
+        """
+        try:
+            # Get file metadata
+            metadata = await self.get_file_metadata(file_id)
+            if not metadata:
+                return False
+                
+            # Get the file content using legacy method
+            grid_id = metadata.get("grid_id")
+            if isinstance(grid_id, str):
+                try:
+                    grid_id = ObjectId(grid_id)
+                except Exception:
+                    pass
+                    
+            legacy_file = await self.db.fs.find_one({"_id": grid_id})
+            if not legacy_file or "data" not in legacy_file:
+                return False
+                
+            # Upload to new GridFS bucket
+            filename = metadata.get("sanitized_filename", f"migrated_{file_id}.bin")
+            file_content = legacy_file.get("data")
+            
+            # Store in new GridFS bucket
+            new_grid_id = await self.fs.upload_from_stream(
+                filename=filename,
+                source=io.BytesIO(file_content),
+                metadata={
+                    "file_id": file_id,
+                    "session_id": metadata.get("session_id"),
+                    "original_filename": metadata.get("filename"),
+                    "content_type": metadata.get("content_type"),
+                    "upload_date": datetime.utcnow(),
+                    "migrated": True,
+                    "original_grid_id": str(grid_id)
+                }
+            )
+            
+            # Update file metadata
+            await self.db.file_metadata.update_one(
+                {"file_id": file_id},
+                {"$set": {
+                    "grid_id": new_grid_id,
+                    "migrated": True,
+                    "migration_date": datetime.utcnow()
+                }}
+            )
+            
+            # Optionally, delete the old file
+            # await self.db.fs.delete_one({"_id": grid_id})
+            
+            return True
+        except Exception as e:
+            logger.error(f"Error migrating legacy file {file_id}: {str(e)}")
+            return False
