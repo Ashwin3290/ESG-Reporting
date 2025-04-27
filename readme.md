@@ -233,26 +233,3 @@ To run the test suite (once implemented):
 ```bash
 pytest tests/
 ```
-
-## Development Guidelines
-
-### Code Style
-
-This project follows PEP 8 style guidelines. Run the following to check code style:
-
-```bash
-flake8 app/ tests/
-```
-
-### Adding New Features
-
-When adding new features:
-
-1. Create appropriate database models in `app/db/models.py`
-2. Implement service logic in `app/services/`
-3. Add API endpoints in `app/api/endpoints/`
-4. Update documentation
-
-## License
-
-MIT
