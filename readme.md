@@ -95,27 +95,6 @@ Alternatively, you can start the server directly with uvicorn:
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-### Option 3: Docker Deployment
-
-The project includes Docker configuration for easy deployment:
-
-1. Build and start the containers:
-
-```bash
-docker-compose up -d
-```
-
-2. Initialize the database (first time only):
-
-```bash
-docker-compose exec esg-api python scripts/init_database.py
-```
-
-3. To stop the containers:
-
-```bash
-docker-compose down
-```
 
 The API will be available at http://localhost:8000, and the interactive documentation is accessible at http://localhost:8000/docs.
 
