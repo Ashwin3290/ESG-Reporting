@@ -11,8 +11,6 @@ from .api.endpoints import (
     industries,
     sessions,
     files,
-    # kpis,  # Removed redundant endpoint
-    # column_mapping,  # Removed redundant endpoint
     dashboard,
     advisor,
     processor  # New processor endpoint
@@ -56,11 +54,10 @@ app.add_event_handler("shutdown", close_mongo_connection)
 app.include_router(industries.router, prefix="/api/industries", tags=["industries"])
 app.include_router(sessions.router, prefix="/api/sessions", tags=["sessions"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
-# app.include_router(kpis.router, prefix="/api/kpis", tags=["kpis"])  # Replaced by processor
-# app.include_router(column_mapping.router, prefix="/api/mapping", tags=["column_mapping"])  # Replaced by processor
+app.include_router(processor.router, prefix="/api/processor", tags=["processor"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
 app.include_router(advisor.router, prefix="/api/advisor", tags=["advisor"])
-app.include_router(processor.router, prefix="/api/processor", tags=["processor"])  # New processor router
+
 
 # Root endpoint
 @app.get("/")

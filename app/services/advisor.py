@@ -1,11 +1,12 @@
 import logging
 import json
 import asyncio
+import re
 from typing import Dict, List, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 
-from ..utils.llm_helpers import GeminiClient
+from ..utils.llm_helpers import GeminiClient, extract_json_from_text
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class ESGAdvisorService:
             industry: Industry name
             
         Returns:
-            Analysis results
+            Analysis results in a format that matches the agentic chatbot output
         """
         # Get session KPI data
         kpi_data = await self._get_session_kpis(session_id)
@@ -96,7 +97,7 @@ class ESGAdvisorService:
             return f"I'm sorry, I encountered an error while processing your request: {str(e)}"
     
     async def _run_full_analysis(self, session_id: str, kpi_data: Dict[str, Any], industry: str) -> Dict[str, Any]:
-        """Run complete ESG analysis"""
+        """Run complete ESG analysis with the structure matching the agentic chatbot"""
         # First process and validate the data
         processed_data = await self._process_data(kpi_data, industry)
         
@@ -118,40 +119,38 @@ class ESGAdvisorService:
         social = await soc_task
         governance = await gov_task
         
-        # Combine results
-        categories = {
+        # Combine results for analysis
+        analyses = {
             "environmental": environmental,
             "social": social,
             "governance": governance
         }
         
         # Develop strategy
-        strategy = await self._develop_strategy(session_id, categories, industry)
+        strategy = await self._develop_strategy(session_id, analyses, industry)
         
-        # Generate recommendations
-        recommendations = await self._generate_recommendations(categories, industry)
+        # Generate report sections similar to agentic chatbot
+        report_sections = await self._generate_report_sections(processed_data, analyses, strategy, industry)
         
         # Store complete analysis
         analysis_id = await self._store_analysis_result(
             session_id=session_id,
             analysis_type="full",
             result={
-                "environmental": environmental,
-                "social": social,
-                "governance": governance,
-                "strategies": strategy,
-                "recommendations": recommendations
+                "processed_data": processed_data,
+                "analyses": analyses,
+                "strategy": strategy,
+                "report_sections": report_sections
             }
         )
         
-        # Return combined results
+        # Return combined results matching the agentic chatbot structure
         return {
             "analysis_id": analysis_id,
-            "environmental": environmental,
-            "social": social,
-            "governance": governance,
-            "strategies": strategy,
-            "recommendations": recommendations
+            "processed_data": processed_data,
+            "analyses": analyses,
+            "strategy": strategy,
+            "report_sections": report_sections
         }
     
     async def _process_data(self, data: Dict[str, Any], industry: str) -> Dict[str, Any]:
@@ -171,7 +170,13 @@ class ESGAdvisorService:
         3. Checking for data quality issues
         4. Flagging any unusual patterns or outliers
         
-        Return a JSON object with the processed data and quality assessment.
+        You must return a valid JSON object with:
+        - processed_data: The cleaned and normalized data
+        - data_quality: Metrics about the quality of data
+        - issues: Array of identified issues
+        - completeness_score: A number from 0-100
+        
+        Format your response as a proper JSON object. Do not include any text outside the JSON.
         """
         
         # Call LLM
@@ -182,22 +187,28 @@ class ESGAdvisorService:
                 temperature=0.1  # Low temperature for more consistent processing
             )
             
-            # Try to parse JSON from response
-            try:
-                # Extract JSON from potentially mixed text
-                json_str = self._extract_json(response_text)
-                processed_data = json.loads(json_str)
-                return processed_data
-            except json.JSONDecodeError:
-                # If parsing fails, return the original data with a warning
-                logger.warning("Failed to parse JSON from data processing response")
+            # Try to parse JSON from response using our improved function
+            processed_data = extract_json_from_text(response_text)
+            
+            # Check if we got an error
+            if "error" in processed_data:
+                logger.warning(f"JSON parsing error in data processing: {processed_data['error']}")
+                
+                # Return original data with warning if parsing failed
                 return {
                     "original_data": data,
-                    "warning": "Data validation could not be performed"
+                    "warning": "Data validation could not be performed - JSON parsing failed",
+                    "raw_response": response_text[:1000]  # Limit the size of the raw response
                 }
+                
+            return processed_data
+                
         except Exception as e:
             logger.error(f"Error in data processing: {str(e)}")
-            return data
+            return {
+                "original_data": data,
+                "error": f"Processing failed: {str(e)}"
+            }
     
     async def _analyze_category(self, session_id: str, category: str, data: Dict[str, Any], industry: str) -> Dict[str, Any]:
         """Analyze specific ESG category"""
@@ -213,14 +224,14 @@ class ESGAdvisorService:
         {category.capitalize()} metrics:
         {json.dumps(category_data, indent=2)}
         
-        Please provide a comprehensive analysis of this {category} data:
-        1. Current performance assessment
-        2. Benchmarking against industry standards
-        3. Identification of risks and vulnerabilities
-        4. Strengths and areas of excellence
-        5. Improvement opportunities
+        You must analyze and provide a valid JSON object with:
+        - performance: Assessment of current performance metrics
+        - gaps: Analysis of gaps compared to industry standards
+        - risks: Evaluation of key {category} risks
+        - opportunities: Key improvement opportunities
+        - score: Overall performance score from 0-100
         
-        Return your analysis as a detailed JSON object with clear sections.
+        Format your response as a proper JSON object. Do not include any text outside the JSON.
         """
         
         # Call LLM
@@ -231,59 +242,60 @@ class ESGAdvisorService:
                 temperature=0.2
             )
             
-            # Try to parse JSON from response
-            try:
-                # Extract JSON from potentially mixed text
-                json_str = self._extract_json(response_text)
-                analysis = json.loads(json_str)
-                
-                # Store category analysis
-                analysis_id = await self._store_analysis_result(
-                    session_id=session_id,
-                    analysis_type=f"{category}_analysis",
-                    result={category: analysis}
-                )
-                
-                analysis["analysis_id"] = analysis_id
-                return analysis
-            except json.JSONDecodeError:
-                # If parsing fails, return a structured analysis from the text
+            # Parse JSON from response using our improved function
+            analysis = extract_json_from_text(response_text)
+            
+            # If we got an error parsing JSON
+            if "error" in analysis and "raw_text" in analysis:
                 logger.warning(f"Failed to parse JSON from {category} analysis response")
+                
+                # Create a structured analysis from the raw text
                 structured_analysis = {
-                    "raw_analysis": response_text,
-                    "parsing_error": "Could not parse structured JSON result"
+                    "performance": "Could not parse performance analysis",
+                    "gaps": "Could not parse gaps analysis",
+                    "risks": "Could not parse risks analysis",
+                    "opportunities": "Could not parse opportunities",
+                    "score": 50,  # Default middle score
+                    "raw_analysis": analysis["raw_text"][:1000],  # Truncate long responses
+                    "parsing_error": analysis["error"]
                 }
                 
-                # Store category analysis
-                analysis_id = await self._store_analysis_result(
-                    session_id=session_id,
-                    analysis_type=f"{category}_analysis",
-                    result={category: structured_analysis}
-                )
+                analysis = structured_analysis
+            
+            # Store category analysis
+            analysis_id = await self._store_analysis_result(
+                session_id=session_id,
+                analysis_type=f"{category}_analysis",
+                result={category: analysis}
+            )
+            
+            analysis["analysis_id"] = analysis_id
+            return analysis
                 
-                structured_analysis["analysis_id"] = analysis_id
-                return structured_analysis
         except Exception as e:
             logger.error(f"Error in {category} analysis: {str(e)}")
-            return {"error": f"Analysis failed: {str(e)}"}
+            return {
+                "error": f"Analysis failed: {str(e)}",
+                "score": 0
+            }
     
-    async def _develop_strategy(self, session_id: str, categories: Dict[str, Dict[str, Any]], industry: str) -> Dict[str, Any]:
+    async def _develop_strategy(self, session_id: str, analyses: Dict[str, Dict[str, Any]], industry: str) -> Dict[str, Any]:
         """Develop comprehensive ESG strategy"""
         # Create prompt for strategy development
         prompt = f"""
         You are an ESG strategy consultant developing improvements for a company in the {industry} industry.
         
         Analysis results:
-        {json.dumps(categories, indent=2)}
+        {json.dumps(analyses, indent=2)}
         
-        Based on the analysis above, develop a comprehensive ESG strategy that includes:
-        1. Prioritized improvement opportunities for each ESG category
-        2. Specific actions to address identified risks
-        3. Short-term (1 year) and medium-term (3 year) implementation timeline
-        4. Required resources and potential implementation challenges
-        5. Expected benefits and impact metrics
+        You must return a valid JSON object with:
+        - priorities: Array of prioritized improvements with scores
+        - action_plans: Detailed action plans for each priority
+        - timeline: Implementation timeline with milestones
+        - resources: Required resources by category
+        - expected_outcomes: Anticipated results after implementation
         
-        Return your strategy as a detailed JSON object with clear sections.
+        Format your response as a proper JSON object. Do not include any text outside the JSON.
         """
         
         # Call LLM
@@ -294,59 +306,69 @@ class ESGAdvisorService:
                 temperature=0.3
             )
             
-            # Try to parse JSON from response
-            try:
-                # Extract JSON from potentially mixed text
-                json_str = self._extract_json(response_text)
-                strategy = json.loads(json_str)
-                
-                # Store strategy
-                strategy_id = await self._store_analysis_result(
-                    session_id=session_id,
-                    analysis_type="strategy",
-                    result={"strategies": strategy}
-                )
-                
-                strategy["strategy_id"] = strategy_id
-                return strategy
-            except json.JSONDecodeError:
-                # If parsing fails, return a structured strategy from the text
+            # Parse JSON using our improved function
+            strategy = extract_json_from_text(response_text)
+            
+            # If we got an error parsing JSON
+            if "error" in strategy and "raw_text" in strategy:
                 logger.warning("Failed to parse JSON from strategy development response")
+                
+                # Create a structured strategy from the raw text
                 structured_strategy = {
-                    "raw_strategy": response_text,
-                    "parsing_error": "Could not parse structured JSON result"
+                    "priorities": ["Could not parse priorities"],
+                    "action_plans": {"error": "Could not parse action plans"},
+                    "timeline": {"error": "Could not parse timeline"},
+                    "resources": {"error": "Could not parse resources"},
+                    "expected_outcomes": {"error": "Could not parse outcomes"},
+                    "raw_strategy": strategy["raw_text"][:1000],  # Truncate long responses
+                    "parsing_error": strategy["error"]
                 }
                 
-                # Store strategy
-                strategy_id = await self._store_analysis_result(
-                    session_id=session_id,
-                    analysis_type="strategy",
-                    result={"strategies": structured_strategy}
-                )
+                strategy = structured_strategy
+            
+            # Store strategy
+            strategy_id = await self._store_analysis_result(
+                session_id=session_id,
+                analysis_type="strategy",
+                result={"strategies": strategy}
+            )
+            
+            strategy["strategy_id"] = strategy_id
+            return strategy
                 
-                structured_strategy["strategy_id"] = strategy_id
-                return structured_strategy
         except Exception as e:
             logger.error(f"Error in strategy development: {str(e)}")
-            return {"error": f"Strategy development failed: {str(e)}"}
+            return {
+                "error": f"Strategy development failed: {str(e)}",
+                "priorities": ["Error occurred during analysis"]
+            }
     
-    async def _generate_recommendations(self, categories: Dict[str, Dict[str, Any]], industry: str) -> List[str]:
-        """Generate prioritized recommendations based on analyses"""
-        # Create prompt for recommendations
+    async def _generate_report_sections(self, data: Dict[str, Any], analyses: Dict[str, Dict[str, Any]], 
+                                     strategy: Dict[str, Any], industry: str) -> Dict[str, str]:
+        """Generate final report sections in markdown format"""
+        # Create prompt for report generation
         prompt = f"""
-        You are an ESG advisor providing actionable recommendations for a company in the {industry} industry.
+        You are an ESG communication specialist creating a comprehensive report for a company in the {industry} industry.
         
-        Analysis results:
-        {json.dumps(categories, indent=2)}
+        Data:
+        {json.dumps(data, indent=2)}
         
-        Based on the analysis above, provide a prioritized list of the top 10 most impactful ESG recommendations.
-        For each recommendation, include:
-        1. The specific action to take
-        2. The ESG category it addresses
-        3. The expected impact
-        4. Implementation difficulty
+        Analyses:
+        {json.dumps(analyses, indent=2)}
         
-        Return your recommendations as a JSON array.
+        Strategy:
+        {json.dumps(strategy, indent=2)}
+        
+        You must return a valid JSON object with the following sections as markdown formatted text:
+        - executive_summary: Brief overview of key findings (markdown)
+        - environmental_section: Details on environmental performance (markdown)
+        - social_section: Details on social performance (markdown)
+        - governance_section: Details on governance performance (markdown)
+        - recommendations: Prioritized recommendations (markdown)
+        - implementation: Implementation roadmap (markdown)
+        
+        Format your response as a proper JSON object with markdown text values for each section.
+        Do not include any text outside the JSON.
         """
         
         # Call LLM
@@ -357,33 +379,68 @@ class ESGAdvisorService:
                 temperature=0.3
             )
             
-            # Try to parse JSON from response
-            try:
-                # Extract JSON from potentially mixed text
-                json_str = self._extract_json(response_text)
-                recommendations = json.loads(json_str)
+            # Parse JSON using our improved function
+            report_sections = extract_json_from_text(response_text)
+            
+            # If we got an error parsing JSON
+            if "error" in report_sections and "raw_text" in report_sections:
+                logger.warning("Failed to parse JSON from report generation response")
                 
-                # Ensure it's a list
-                if isinstance(recommendations, dict) and "recommendations" in recommendations:
-                    return recommendations["recommendations"]
-                elif isinstance(recommendations, list):
-                    return recommendations
-                else:
-                    return [str(recommendations)]
-            except json.JSONDecodeError:
-                # If parsing fails, extract recommendations from text
-                logger.warning("Failed to parse JSON from recommendations response")
-                # Split by numbers and newlines to extract recommendations
-                lines = response_text.split("\n")
-                recommendations = []
+                # Create fallback sections from the raw text
+                raw_text = report_sections["raw_text"]
+                sections = ["executive_summary", "environmental_section", "social_section", 
+                           "governance_section", "recommendations", "implementation"]
+                
+                # Try to split the response into sections
+                report_sections = {}
+                
+                # Default sections with error information
+                for section in sections:
+                    report_sections[section] = f"*Error: Could not parse {section.replace('_', ' ')} content.*"
+                
+                # Try to extract sections from headings in the raw text
+                lines = raw_text.split("\n")
+                current_section = None
+                section_content = []
+                
                 for line in lines:
-                    if any(line.strip().startswith(str(i) + ".") for i in range(1, 11)):
-                        recommendations.append(line.strip())
+                    # Check if this line matches a section header
+                    for section in sections:
+                        section_name = section.replace("_", " ").title()
+                        if section_name in line or section.title() in line:
+                            # Save previous section if exists
+                            if current_section and section_content:
+                                report_sections[current_section] = "\n".join(section_content)
+                                section_content = []
+                            
+                            current_section = section
+                            break
+                    
+                    # Add content to current section
+                    if current_section and not any(section_name in line for section_name in 
+                                                [s.replace("_", " ").title() for s in sections]):
+                        section_content.append(line)
                 
-                return recommendations if recommendations else ["No specific recommendations could be extracted"]
+                # Add the last section
+                if current_section and section_content:
+                    report_sections[current_section] = "\n".join(section_content)
+                
+                # Add error notice
+                report_sections["error"] = "JSON parsing failed - sections may be incomplete"
+            
+            return report_sections
+                
         except Exception as e:
-            logger.error(f"Error generating recommendations: {str(e)}")
-            return ["Failed to generate recommendations due to an error"]
+            logger.error(f"Error in report generation: {str(e)}")
+            return {
+                "error": f"Report generation failed: {str(e)}",
+                "executive_summary": "Error generating report.",
+                "environmental_section": "Error generating environmental section.",
+                "social_section": "Error generating social section.",
+                "governance_section": "Error generating governance section.",
+                "recommendations": "Error generating recommendations.",
+                "implementation": "Error generating implementation plan."
+            }
     
     async def _get_session_kpis(self, session_id: str) -> Dict[str, Dict[str, Any]]:
         """Get all KPI data for a session"""
@@ -521,58 +578,3 @@ class ESGAdvisorService:
         """
         
         return prompt
-    
-    def _extract_json(self, text: str) -> str:
-        """Extract JSON from text response"""
-        if not text:
-            return "{}"
-        
-        # Look for JSON object
-        json_pattern = r'\{.+\}'
-        match = re.search(json_pattern, text, re.DOTALL)
-        if match:
-            return match.group(0)
-        
-        # Look for JSON array
-        array_pattern = r'\[.+\]'
-        match = re.search(array_pattern, text, re.DOTALL)
-        if match:
-            return match.group(0)
-        
-        # Alternative approach: look for code block with JSON
-        code_pattern = r'```(?:json)?\s*(\{.*?\})\s*```'
-        match = re.search(code_pattern, text, re.DOTALL)
-        if match:
-            return match.group(1)
-        
-        # Array in code block
-        array_code_pattern = r'```(?:json)?\s*(\[.*?\])\s*```'
-        match = re.search(array_code_pattern, text, re.DOTALL)
-        if match:
-            return match.group(1)
-        
-        # If no JSON found, try to convert the text to JSON
-        try:
-            import re
-            # Extract structured content
-            lines = text.split('\n')
-            structured_content = {}
-            current_section = None
-            
-            for line in lines:
-                # Check for section headers
-                section_match = re.match(r'^#+\s+(.+)$', line) or re.match(r'^(\d+\.\s+.+):$', line)
-                if section_match:
-                    current_section = section_match.group(1).strip()
-                    structured_content[current_section] = []
-                elif current_section and line.strip():
-                    structured_content[current_section].append(line.strip())
-            
-            # Convert lists to strings
-            for section, content in structured_content.items():
-                structured_content[section] = '\n'.join(content)
-            
-            return json.dumps(structured_content)
-        except:
-            # If all else fails, return the text as a JSON string
-            return json.dumps({"text": text})
