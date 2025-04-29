@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # Upload settings
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "./uploads")
-    MAX_UPLOAD_SIZE: int = int(os.getenv("MAX_UPLOAD_SIZE", "10485760"))  # 10MB
+    MAX_UPLOAD_SIZE: int = int(os.getenv("MAX_UPLOAD_SIZE", "10485760"))
     
     # LLM Configuration
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")

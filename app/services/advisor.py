@@ -1,12 +1,11 @@
 import logging
 import json
 import asyncio
-import re
 from typing import Dict, List, Any, Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime
 
-from ..utils.llm_helpers import GeminiClient, extract_json_from_text
+from ..utils.llm_helpers import GeminiClient
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +18,7 @@ class ESGAdvisorService:
     
     async def run_analysis(self, session_id: str, analysis_type: str, industry: str) -> Dict[str, Any]:
         """
-        Run ESG analysis on session data
+        Run ESG analysis on session data, returning a markdown report
         
         Args:
             session_id: Session ID
@@ -27,7 +26,7 @@ class ESGAdvisorService:
             industry: Industry name
             
         Returns:
-            Analysis results in a format that matches the agentic chatbot output
+            Analysis results as markdown
         """
         # Get session KPI data
         kpi_data = await self._get_session_kpis(session_id)
@@ -41,18 +40,8 @@ class ESGAdvisorService:
             elif analysis_type in ["environmental", "social", "governance"]:
                 result = await self._analyze_category(session_id, analysis_type, kpi_data, industry)
             elif analysis_type == "strategy":
-                # Get the most recent analyses for all categories
-                categories = await self._get_latest_category_analyses(session_id)
-                if not categories:
-                    # If no previous analyses, run analyses for all categories
-                    categories = {
-                        "environmental": await self._analyze_category(session_id, "environmental", kpi_data, industry),
-                        "social": await self._analyze_category(session_id, "social", kpi_data, industry),
-                        "governance": await self._analyze_category(session_id, "governance", kpi_data, industry)
-                    }
-                
-                # Develop strategy based on category analyses
-                result = await self._develop_strategy(session_id, categories, industry)
+                # For strategy only, develop strategy
+                result = await self._develop_strategy_markdown(session_id, kpi_data, industry)
             else:
                 return {"error": f"Unknown analysis type: {analysis_type}"}
             
@@ -97,349 +86,184 @@ class ESGAdvisorService:
             return f"I'm sorry, I encountered an error while processing your request: {str(e)}"
     
     async def _run_full_analysis(self, session_id: str, kpi_data: Dict[str, Any], industry: str) -> Dict[str, Any]:
-        """Run complete ESG analysis with the structure matching the agentic chatbot"""
-        # First process and validate the data
-        processed_data = await self._process_data(kpi_data, industry)
-        
-        # Run analyses for each category in parallel
-        env_task = asyncio.create_task(
-            self._analyze_category(session_id, "environmental", processed_data, industry)
-        )
-        
-        soc_task = asyncio.create_task(
-            self._analyze_category(session_id, "social", processed_data, industry)
-        )
-        
-        gov_task = asyncio.create_task(
-            self._analyze_category(session_id, "governance", processed_data, industry)
-        )
-        
-        # Wait for all analyses to complete
-        environmental = await env_task
-        social = await soc_task
-        governance = await gov_task
-        
-        # Combine results for analysis
-        analyses = {
-            "environmental": environmental,
-            "social": social,
-            "governance": governance
-        }
-        
-        # Develop strategy
-        strategy = await self._develop_strategy(session_id, analyses, industry)
-        
-        # Generate report sections similar to agentic chatbot
-        report_sections = await self._generate_report_sections(processed_data, analyses, strategy, industry)
-        
-        # Store complete analysis
-        analysis_id = await self._store_analysis_result(
-            session_id=session_id,
-            analysis_type="full",
-            result={
-                "processed_data": processed_data,
-                "analyses": analyses,
-                "strategy": strategy,
-                "report_sections": report_sections
-            }
-        )
-        
-        # Return combined results matching the agentic chatbot structure
-        return {
-            "analysis_id": analysis_id,
-            "processed_data": processed_data,
-            "analyses": analyses,
-            "strategy": strategy,
-            "report_sections": report_sections
-        }
-    
-    async def _process_data(self, data: Dict[str, Any], industry: str) -> Dict[str, Any]:
-        """Process and validate input data"""
-        # Create prompt for data processing
+        """Run complete ESG analysis and return a single markdown report"""
+        # Generate the full analysis report in markdown format
         prompt = f"""
-        You are an ESG data analyst processing and validating data for analysis.
-        
-        Industry: {industry}
+        You are an ESG (Environmental, Social, and Governance) analyst creating a comprehensive report for a company in the {industry} industry.
         
         Data:
-        {json.dumps(data, indent=2)}
+        {json.dumps(kpi_data, indent=2)}
         
-        Please process this data by:
-        1. Identifying any missing or anomalous values
-        2. Normalizing metrics to standard ranges
-        3. Checking for data quality issues
-        4. Flagging any unusual patterns or outliers
+        Please create a complete ESG analysis report in markdown format that includes:
         
-        You must return a valid JSON object with:
-        - processed_data: The cleaned and normalized data
-        - data_quality: Metrics about the quality of data
-        - issues: Array of identified issues
-        - completeness_score: A number from 0-100
+        1. Executive Summary
+        2. Environmental Analysis
+           - Current performance assessment
+           - Comparison to industry benchmarks
+           - Key risks and vulnerabilities
+           - Improvement opportunities
+        3. Social Analysis
+           - Current performance assessment
+           - Comparison to industry benchmarks
+           - Key risks and vulnerabilities
+           - Improvement opportunities
+        4. Governance Analysis
+           - Current performance assessment
+           - Comparison to industry benchmarks
+           - Key risks and vulnerabilities
+           - Improvement opportunities
+        5. Strategic Recommendations
+           - Prioritized improvement opportunities
+           - Action plans for addressing identified risks
+           - Implementation timeline (short-term and medium-term)
+           - Required resources
+        6. Implementation Roadmap
         
-        Format your response as a proper JSON object. Do not include any text outside the JSON.
+        Your report should be well-structured with clear markdown headings, bullet points, and formatting.
+        Do not use JSON format - provide the report directly in markdown.
         """
         
         # Call LLM
         try:
-            response_text = await self.gemini_client.generate_text(
+            markdown_report = await self.gemini_client.generate_text(
                 model="gemini-2.0-flash",
                 prompt=prompt,
-                temperature=0.1  # Low temperature for more consistent processing
+                temperature=0.3,
+                max_output_tokens=4096
             )
             
-            # Try to parse JSON from response using our improved function
-            processed_data = extract_json_from_text(response_text)
+            # Store analysis
+            analysis_id = await self._store_analysis_result(
+                session_id=session_id,
+                analysis_type="full",
+                result={"report": markdown_report}
+            )
             
-            # Check if we got an error
-            if "error" in processed_data:
-                logger.warning(f"JSON parsing error in data processing: {processed_data['error']}")
-                
-                # Return original data with warning if parsing failed
-                return {
-                    "original_data": data,
-                    "warning": "Data validation could not be performed - JSON parsing failed",
-                    "raw_response": response_text[:1000]  # Limit the size of the raw response
-                }
-                
-            return processed_data
+            return {
+                "analysis_id": analysis_id,
+                "report": markdown_report
+            }
                 
         except Exception as e:
-            logger.error(f"Error in data processing: {str(e)}")
+            logger.error(f"Error generating full analysis: {str(e)}")
             return {
-                "original_data": data,
-                "error": f"Processing failed: {str(e)}"
+                "error": f"Analysis failed: {str(e)}",
+                "report": f"# Error Generating Report\n\nAn error occurred while generating the ESG analysis: {str(e)}"
             }
     
     async def _analyze_category(self, session_id: str, category: str, data: Dict[str, Any], industry: str) -> Dict[str, Any]:
-        """Analyze specific ESG category"""
+        """Analyze specific ESG category and return markdown"""
         # Extract category-specific data
         category_data = data.get(category, {})
         
-        # Create prompt for category analysis
+        # Create prompt for category analysis in markdown
         prompt = f"""
-        You are an ESG analyst specializing in {category} performance analysis.
-        
-        Industry: {industry}
+        You are an ESG analyst specializing in {category} performance analysis for the {industry} industry.
         
         {category.capitalize()} metrics:
         {json.dumps(category_data, indent=2)}
         
-        You must analyze and provide a valid JSON object with:
-        - performance: Assessment of current performance metrics
-        - gaps: Analysis of gaps compared to industry standards
-        - risks: Evaluation of key {category} risks
-        - opportunities: Key improvement opportunities
-        - score: Overall performance score from 0-100
+        Please provide a comprehensive analysis of this {category} data in markdown format, including:
         
-        Format your response as a proper JSON object. Do not include any text outside the JSON.
+        1. Current Performance Assessment
+        2. Comparison to Industry Benchmarks
+        3. Key Risks and Vulnerabilities
+        4. Strengths and Areas of Excellence
+        5. Improvement Opportunities
+        
+        Format your response as a well-structured markdown document with headings and bullet points.
+        Do not use JSON format - provide the analysis directly in markdown.
         """
         
         # Call LLM
         try:
-            response_text = await self.gemini_client.generate_text(
+            markdown_analysis = await self.gemini_client.generate_text(
                 model="gemini-2.0-flash",
                 prompt=prompt,
-                temperature=0.2
+                temperature=0.2,
+                max_output_tokens=2048
             )
-            
-            # Parse JSON from response using our improved function
-            analysis = extract_json_from_text(response_text)
-            
-            # If we got an error parsing JSON
-            if "error" in analysis and "raw_text" in analysis:
-                logger.warning(f"Failed to parse JSON from {category} analysis response")
-                
-                # Create a structured analysis from the raw text
-                structured_analysis = {
-                    "performance": "Could not parse performance analysis",
-                    "gaps": "Could not parse gaps analysis",
-                    "risks": "Could not parse risks analysis",
-                    "opportunities": "Could not parse opportunities",
-                    "score": 50,  # Default middle score
-                    "raw_analysis": analysis["raw_text"][:1000],  # Truncate long responses
-                    "parsing_error": analysis["error"]
-                }
-                
-                analysis = structured_analysis
             
             # Store category analysis
             analysis_id = await self._store_analysis_result(
                 session_id=session_id,
                 analysis_type=f"{category}_analysis",
-                result={category: analysis}
+                result={category: markdown_analysis}
             )
             
-            analysis["analysis_id"] = analysis_id
-            return analysis
+            return {
+                "analysis_id": analysis_id,
+                "report": markdown_analysis
+            }
                 
         except Exception as e:
             logger.error(f"Error in {category} analysis: {str(e)}")
             return {
                 "error": f"Analysis failed: {str(e)}",
-                "score": 0
+                "report": f"# Error Analyzing {category.capitalize()}\n\nAn error occurred: {str(e)}"
             }
     
-    async def _develop_strategy(self, session_id: str, analyses: Dict[str, Dict[str, Any]], industry: str) -> Dict[str, Any]:
-        """Develop comprehensive ESG strategy"""
+    async def _develop_strategy_markdown(self, session_id: str, data: Dict[str, Any], industry: str) -> Dict[str, Any]:
+        """Develop a comprehensive ESG strategy in markdown format"""
         # Create prompt for strategy development
         prompt = f"""
         You are an ESG strategy consultant developing improvements for a company in the {industry} industry.
         
-        Analysis results:
-        {json.dumps(analyses, indent=2)}
+        ESG data:
+        {json.dumps(data, indent=2)}
         
-        You must return a valid JSON object with:
-        - priorities: Array of prioritized improvements with scores
-        - action_plans: Detailed action plans for each priority
-        - timeline: Implementation timeline with milestones
-        - resources: Required resources by category
-        - expected_outcomes: Anticipated results after implementation
+        Please develop a comprehensive ESG strategy in markdown format that includes:
         
-        Format your response as a proper JSON object. Do not include any text outside the JSON.
+        1. Prioritized Improvement Opportunities
+           - For environmental performance
+           - For social performance
+           - For governance performance
+        
+        2. Action Plans
+           - Specific actions to address identified risks
+           - Steps for implementing improvements
+           
+        3. Implementation Timeline
+           - Short-term (1 year) actions
+           - Medium-term (3 year) actions
+           
+        4. Resource Requirements
+           - Human resources needed
+           - Financial resources needed
+           - Technology and systems requirements
+           
+        5. Expected Benefits and Impact Metrics
+        
+        Format your response as a well-structured markdown document with headings, bullet points, and clear sections.
+        Do not use JSON format - provide the strategy directly in markdown.
         """
         
         # Call LLM
         try:
-            response_text = await self.gemini_client.generate_text(
+            markdown_strategy = await self.gemini_client.generate_text(
                 model="gemini-2.0-flash",
                 prompt=prompt,
-                temperature=0.3
+                temperature=0.3,
+                max_output_tokens=2048
             )
-            
-            # Parse JSON using our improved function
-            strategy = extract_json_from_text(response_text)
-            
-            # If we got an error parsing JSON
-            if "error" in strategy and "raw_text" in strategy:
-                logger.warning("Failed to parse JSON from strategy development response")
-                
-                # Create a structured strategy from the raw text
-                structured_strategy = {
-                    "priorities": ["Could not parse priorities"],
-                    "action_plans": {"error": "Could not parse action plans"},
-                    "timeline": {"error": "Could not parse timeline"},
-                    "resources": {"error": "Could not parse resources"},
-                    "expected_outcomes": {"error": "Could not parse outcomes"},
-                    "raw_strategy": strategy["raw_text"][:1000],  # Truncate long responses
-                    "parsing_error": strategy["error"]
-                }
-                
-                strategy = structured_strategy
             
             # Store strategy
             strategy_id = await self._store_analysis_result(
                 session_id=session_id,
                 analysis_type="strategy",
-                result={"strategies": strategy}
+                result={"strategy": markdown_strategy}
             )
             
-            strategy["strategy_id"] = strategy_id
-            return strategy
+            return {
+                "strategy_id": strategy_id,
+                "report": markdown_strategy
+            }
                 
         except Exception as e:
             logger.error(f"Error in strategy development: {str(e)}")
             return {
                 "error": f"Strategy development failed: {str(e)}",
-                "priorities": ["Error occurred during analysis"]
-            }
-    
-    async def _generate_report_sections(self, data: Dict[str, Any], analyses: Dict[str, Dict[str, Any]], 
-                                     strategy: Dict[str, Any], industry: str) -> Dict[str, str]:
-        """Generate final report sections in markdown format"""
-        # Create prompt for report generation
-        prompt = f"""
-        You are an ESG communication specialist creating a comprehensive report for a company in the {industry} industry.
-        
-        Data:
-        {json.dumps(data, indent=2)}
-        
-        Analyses:
-        {json.dumps(analyses, indent=2)}
-        
-        Strategy:
-        {json.dumps(strategy, indent=2)}
-        
-        You must return a valid JSON object with the following sections as markdown formatted text:
-        - executive_summary: Brief overview of key findings (markdown)
-        - environmental_section: Details on environmental performance (markdown)
-        - social_section: Details on social performance (markdown)
-        - governance_section: Details on governance performance (markdown)
-        - recommendations: Prioritized recommendations (markdown)
-        - implementation: Implementation roadmap (markdown)
-        
-        Format your response as a proper JSON object with markdown text values for each section.
-        Do not include any text outside the JSON.
-        """
-        
-        # Call LLM
-        try:
-            response_text = await self.gemini_client.generate_text(
-                model="gemini-2.0-flash",
-                prompt=prompt,
-                temperature=0.3
-            )
-            
-            # Parse JSON using our improved function
-            report_sections = extract_json_from_text(response_text)
-            
-            # If we got an error parsing JSON
-            if "error" in report_sections and "raw_text" in report_sections:
-                logger.warning("Failed to parse JSON from report generation response")
-                
-                # Create fallback sections from the raw text
-                raw_text = report_sections["raw_text"]
-                sections = ["executive_summary", "environmental_section", "social_section", 
-                           "governance_section", "recommendations", "implementation"]
-                
-                # Try to split the response into sections
-                report_sections = {}
-                
-                # Default sections with error information
-                for section in sections:
-                    report_sections[section] = f"*Error: Could not parse {section.replace('_', ' ')} content.*"
-                
-                # Try to extract sections from headings in the raw text
-                lines = raw_text.split("\n")
-                current_section = None
-                section_content = []
-                
-                for line in lines:
-                    # Check if this line matches a section header
-                    for section in sections:
-                        section_name = section.replace("_", " ").title()
-                        if section_name in line or section.title() in line:
-                            # Save previous section if exists
-                            if current_section and section_content:
-                                report_sections[current_section] = "\n".join(section_content)
-                                section_content = []
-                            
-                            current_section = section
-                            break
-                    
-                    # Add content to current section
-                    if current_section and not any(section_name in line for section_name in 
-                                                [s.replace("_", " ").title() for s in sections]):
-                        section_content.append(line)
-                
-                # Add the last section
-                if current_section and section_content:
-                    report_sections[current_section] = "\n".join(section_content)
-                
-                # Add error notice
-                report_sections["error"] = "JSON parsing failed - sections may be incomplete"
-            
-            return report_sections
-                
-        except Exception as e:
-            logger.error(f"Error in report generation: {str(e)}")
-            return {
-                "error": f"Report generation failed: {str(e)}",
-                "executive_summary": "Error generating report.",
-                "environmental_section": "Error generating environmental section.",
-                "social_section": "Error generating social section.",
-                "governance_section": "Error generating governance section.",
-                "recommendations": "Error generating recommendations.",
-                "implementation": "Error generating implementation plan."
+                "report": f"# Error Developing Strategy\n\nAn error occurred: {str(e)}"
             }
     
     async def _get_session_kpis(self, session_id: str) -> Dict[str, Dict[str, Any]]:
@@ -490,24 +314,6 @@ class ESGAdvisorService:
                 categorized_kpis[category][spec] = kpi_values[spec]
         
         return categorized_kpis
-    
-    async def _get_latest_category_analyses(self, session_id: str) -> Dict[str, Dict[str, Any]]:
-        """Get the most recent analysis for each category"""
-        categories = ["environmental", "social", "governance"]
-        results = {}
-        
-        for category in categories:
-            # Get most recent analysis for this category
-            cursor = self.db.analysis_results.find(
-                {"session_id": session_id, "analysis_type": f"{category}_analysis"},
-                sort=[("created_at", -1)],
-                limit=1
-            )
-            
-            async for doc in cursor:
-                results[category] = doc.get(category, {})
-        
-        return results if len(results) == 3 else {}
     
     async def _store_analysis_result(self, session_id: str, analysis_type: str, result: Dict[str, Any]) -> str:
         """Store analysis result in database"""
@@ -564,10 +370,38 @@ class ESGAdvisorService:
         
         # Add context if available
         if context:
-            prompt += f"""
-            Previous analysis:
-            {json.dumps(context, indent=2)}
-            """
+            # Check if the context contains a report or strategy
+            if "report" in context:
+                prompt += f"""
+                Previous analysis report:
+                {context["report"]}
+                """
+            elif "strategy" in context:
+                prompt += f"""
+                Previous strategy analysis:
+                {context["strategy"]}
+                """
+            elif context.get("analysis_type") == "environmental_analysis" and "environmental" in context:
+                prompt += f"""
+                Previous environmental analysis:
+                {context["environmental"]}
+                """
+            elif context.get("analysis_type") == "social_analysis" and "social" in context:
+                prompt += f"""
+                Previous social analysis:
+                {context["social"]}
+                """
+            elif context.get("analysis_type") == "governance_analysis" and "governance" in context:
+                prompt += f"""
+                Previous governance analysis:
+                {context["governance"]}
+                """
+            else:
+                # Fallback to simple JSON for other cases
+                prompt += f"""
+                Previous analysis:
+                {json.dumps(context, indent=2)}
+                """
         
         # Add user message
         prompt += f"""

@@ -24,7 +24,7 @@ async def run_analysis(
     advisor_service: ESGAdvisorService = Depends(get_advisor_service),
     data_manager: DataManagerService = Depends(get_data_manager)
 ):
-    """Run ESG analysis based on session data with output matching the agentic chatbot format"""
+    """Run ESG analysis based on session data with markdown output"""
     # Verify session exists
     session = await data_manager.get_session(request.session_id)
     if not session:
@@ -99,50 +99,36 @@ async def chat_with_advisor(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
-@router.get("/recommendations/{session_id}")
-async def get_recommendations(
-    session_id: str = Path(..., description="Session ID"),
-    analysis_id: Optional[str] = None,
+@router.get("/report/{analysis_id}")
+async def get_report(
+    analysis_id: str = Path(..., description="Analysis ID"),
     data_manager: DataManagerService = Depends(get_data_manager)
 ):
-    """Get recommendations from a specific analysis or the most recent one"""
-    # Verify session exists
-    session = await data_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
+    """Get the markdown report from a specific analysis"""
+    analysis = await data_manager.get_analysis_result(analysis_id)
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Analysis not found")
     
-    # Get analysis
-    if analysis_id:
-        analysis = await data_manager.get_analysis_result(analysis_id)
-        if not analysis:
-            raise HTTPException(status_code=404, detail="Analysis not found")
+    # Extract report depending on what fields exist
+    if "report" in analysis:
+        markdown_report = analysis["report"]
+    elif "markdown_report" in analysis:
+        markdown_report = analysis["markdown_report"]
+    elif "strategy" in analysis:
+        markdown_report = analysis["strategy"]
+    elif analysis.get("analysis_type") == "environmental_analysis" and "environmental" in analysis:
+        markdown_report = analysis["environmental"]
+    elif analysis.get("analysis_type") == "social_analysis" and "social" in analysis:
+        markdown_report = analysis["social"]
+    elif analysis.get("analysis_type") == "governance_analysis" and "governance" in analysis:
+        markdown_report = analysis["governance"]
     else:
-        # Get most recent analysis
-        analyses = await data_manager.get_session_analyses(session_id)
-        if not analyses:
-            raise HTTPException(status_code=404, detail="No analyses found for session")
-        
-        # Sort by created_at and take the most recent
-        analyses.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-        analysis = analyses[0]
-    
-    # Extract recommendations from the new structure
-    if "report_sections" in analysis and "recommendations" in analysis["report_sections"]:
-        recommendations = analysis["report_sections"]["recommendations"]
-    else:
-        # Fallback to old structure if needed
-        recommendations = analysis.get("recommendations", [])
-    
-    if "strategy" in analysis:
-        strategies = analysis["strategy"]
-    else:
-        # Fallback to old structure
-        strategies = analysis.get("strategies", {})
+        # Fallback for old format or if report is missing
+        markdown_report = "# Report Not Available\n\nThis analysis does not have a markdown report available."
     
     return {
         "analysis_id": analysis.get("_id") or analysis.get("analysis_id", ""),
-        "recommendations": recommendations,
-        "strategies": strategies
+        "report": markdown_report
     }
 
 @router.get("/history/{session_id}")
@@ -167,12 +153,22 @@ async def get_analysis_history(
     # Format response
     analysis_history = []
     for analysis in analyses:
+        # Determine if analysis has a report
+        has_report = any(key in analysis for key in ["report", "markdown_report", "strategy"])
+        if not has_report:
+            # Check category specific fields
+            if analysis.get("analysis_type") == "environmental_analysis" and "environmental" in analysis:
+                has_report = True
+            elif analysis.get("analysis_type") == "social_analysis" and "social" in analysis:
+                has_report = True
+            elif analysis.get("analysis_type") == "governance_analysis" and "governance" in analysis:
+                has_report = True
+        
         analysis_history.append({
             "analysis_id": analysis.get("_id") or analysis.get("analysis_id", ""),
             "analysis_type": analysis.get("analysis_type"),
             "created_at": analysis.get("created_at"),
-            "has_recommendations": bool(analysis.get("recommendations", [])) or 
-                                  bool(analysis.get("report_sections", {}).get("recommendations", ""))
+            "has_report": has_report
         })
     
     return {"analyses": analysis_history}
@@ -192,34 +188,3 @@ async def get_analysis(
         analysis["_id"] = str(analysis["_id"])
         
     return analysis
-
-@router.get("/report-sections/{analysis_id}")
-async def get_report_sections(
-    analysis_id: str = Path(..., description="Analysis ID"),
-    data_manager: DataManagerService = Depends(get_data_manager)
-):
-    """Get report sections from a specific analysis"""
-    analysis = await data_manager.get_analysis_result(analysis_id)
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-    
-    # Extract report sections
-    if "report_sections" in analysis:
-        return {
-            "analysis_id": analysis.get("_id") or analysis.get("analysis_id", ""),
-            "report_sections": analysis["report_sections"]
-        }
-    else:
-        # If using old format, return empty sections
-        return {
-            "analysis_id": analysis.get("_id") or analysis.get("analysis_id", ""),
-            "error": "No report sections available for this analysis",
-            "report_sections": {
-                "executive_summary": "No summary available",
-                "environmental_section": "No environmental section available",
-                "social_section": "No social section available",
-                "governance_section": "No governance section available",
-                "recommendations": "No recommendations available",
-                "implementation": "No implementation plan available"
-            }
-        }
