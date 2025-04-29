@@ -172,5 +172,5 @@ cython_debug/
 
 
 .vscode
-
+.env
 session_files/*
